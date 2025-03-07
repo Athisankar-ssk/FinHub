@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "781904681760",
+    "project_id": "finhub-fb459",
+    "storage_bucket": "finhub-fb459.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:781904681760:android:79aac5a9e82fa533679545",
+        "android_client_info": {
+          "package_name": "com.example.finhub"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "781904681760-vijc52uionl28bagfsut7fk9rpekv7tp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.finhub",
+            "certificate_hash": "07427dc219d38dd969778ea5e506334d82a6da26"
+          }
+        },
+        {
+          "client_id": "781904681760-pbaqkjp7ndcf9q7ru6ojsd89lb9m7et7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDWxTfRImWol_DzWrnwv8_6H4BtgX3TPjQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "781904681760-pbaqkjp7ndcf9q7ru6ojsd89lb9m7et7.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
