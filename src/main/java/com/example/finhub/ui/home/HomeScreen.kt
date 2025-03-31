@@ -22,6 +22,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.finhub.data.model.NewsArticle
 import com.example.finhub.ui.home.NewsViewModel
 import com.example.finhub.ui.home.NewsViewModelFactory
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -73,6 +74,10 @@ fun HomeScreen(apiKey: String) {
 
 @Composable
 fun SideMenu(onClose: () -> Unit) {
+    // Get the current user from Firebase
+    val auth = FirebaseAuth.getInstance()
+    val currentUser = auth.currentUser
+
     ModalDrawerSheet(
         modifier = Modifier.fillMaxSize(),
         drawerContainerColor = Color.Black
@@ -83,6 +88,24 @@ fun SideMenu(onClose: () -> Unit) {
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
+            // Display User Info (Name and Email)
+            if (currentUser != null) {
+                Text(
+                    text = "Hello, ${currentUser.displayName ?: "User"}",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = currentUser.email ?: "No Email",
+                    color = Color.Gray,
+                    fontSize = 14.sp
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            // Menu items
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -109,6 +132,24 @@ fun SideMenu(onClose: () -> Unit) {
             SideMenuItem("Feed Gesture")
             SideMenuItem("Notifications")
             SideMenuItem("Appearance")
+
+            // Add logout button at the bottom
+            Spacer(modifier = Modifier.weight(1f)) // Push logout button to the bottom
+            Button(
+                onClick = {
+                    // Log out the user
+                    auth.signOut()
+                    // Optionally, navigate to the login screen
+                    onClose()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .background(Color.Red),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+            ) {
+                Text(text = "Logout", color = Color.White)
+            }
         }
     }
 }
@@ -172,3 +213,4 @@ fun NewsCard(article: NewsArticle) {
         }
     }
 }
+

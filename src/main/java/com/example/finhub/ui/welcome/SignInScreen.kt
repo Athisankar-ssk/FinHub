@@ -25,6 +25,7 @@ import com.example.finhub.utils.handleGoogleSignInResult
 import com.example.finhub.utils.triggerGoogleSignIn
 import com.google.firebase.auth.FirebaseAuth
 import com.google.android.gms.auth.api.identity.Identity
+import android.content.Context
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,6 +53,18 @@ fun SignInScreen(navController: NavController) {
                 navController.navigate("home")
             }
         }
+    }
+
+    // Check if the user is already logged in
+    val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+    val isLoggedIn = sharedPreferences.getBoolean("is_logged_in", false)
+
+    // If logged in, navigate to home
+    if (isLoggedIn || auth.currentUser != null) {
+        navController.navigate("home") {
+            popUpTo("signin") { inclusive = true }
+        }
+        return
     }
 
     Column(
@@ -117,6 +130,8 @@ fun SignInScreen(navController: NavController) {
                     auth.signInWithEmailAndPassword(email, password)
                         .addOnCompleteListener { task ->
                             if (task.isSuccessful) {
+                                // Save login state
+                                sharedPreferences.edit().putBoolean("is_logged_in", true).apply()
                                 Toast.makeText(context, "Sign In Successful", Toast.LENGTH_SHORT).show()
                                 navController.navigate("home")
                             } else {

@@ -4,6 +4,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.IntentSenderRequest
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,7 +28,6 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.android.gms.auth.api.identity.Identity
-import android.util.Patterns
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,6 +77,7 @@ fun SignUpScreen(navController: NavController) {
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
+            // Name input
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
@@ -92,6 +93,7 @@ fun SignUpScreen(navController: NavController) {
                 )
             )
 
+            // Email input
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
@@ -107,6 +109,7 @@ fun SignUpScreen(navController: NavController) {
                 )
             )
 
+            // Password input
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
@@ -122,6 +125,7 @@ fun SignUpScreen(navController: NavController) {
                 )
             )
 
+            // Sign Up Button
             Button(
                 onClick = {
                     if (validateInputs(name, email, password, context)) {
@@ -153,28 +157,60 @@ fun SignUpScreen(navController: NavController) {
             ) {
                 Text("Sign Up", color = Color.Black, fontWeight = FontWeight.Bold)
             }
+
+            // Spacer
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Already have an account? Sign In link
+            TextButton(onClick = { navController.navigate("signin") }) {
+                Text("Already have an account? Sign In", color = Color(0xFF2CDCBB))
+            }
+
+            // Spacer
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Google Sign In Button
+            Button(
+                onClick = {
+                    oneTapClient.beginSignIn(signInRequest)
+                        .addOnSuccessListener { result ->
+                            googleSignInLauncher.launch(IntentSenderRequest.Builder(result.pendingIntent).build())
+                        }
+                        .addOnFailureListener { e ->
+                            Toast.makeText(context, "Google Sign-In Failed: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                        }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.google_logo),
+                    contentDescription = null,
+                    modifier = Modifier.size(32.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Sign Up with Google", color = Color.Black, fontWeight = FontWeight.Bold)
+            }
         }
     }
 }
 
-// Improved validation function
+// Helper Function
 fun validateInputs(name: String, email: String, password: String, context: android.content.Context): Boolean {
-    val namePattern = "^[a-zA-Z ]{3,}\$".toRegex()
-
-    if (name.isEmpty() || !name.matches(namePattern)) {
-        Toast.makeText(context, "Name must be at least 3 characters and contain only letters", Toast.LENGTH_SHORT).show()
+    if (name.isEmpty() || email.isEmpty() || password.isEmpty()) {
+        Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
         return false
     }
-
-    if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+    if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
         Toast.makeText(context, "Please enter a valid email", Toast.LENGTH_SHORT).show()
         return false
     }
-
-    if (password.length < 6 || !password.any { it.isDigit() } || !password.any { it.isLetter() }) {
-        Toast.makeText(context, "Password must be at least 6 characters and contain letters and numbers", Toast.LENGTH_SHORT).show()
+    if (password.length < 6) {
+        Toast.makeText(context, "Password must be at least 6 characters", Toast.LENGTH_SHORT).show()
         return false
     }
-
     return true
 }
