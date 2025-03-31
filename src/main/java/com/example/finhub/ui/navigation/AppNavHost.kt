@@ -37,7 +37,7 @@ fun AppNavHost(apiKey: String) {
 
     val startDestination = when {
         !isOnboardingCompleted -> "onboarding"
-        !isUserLoggedIn -> "welcome"
+        !isUserLoggedIn -> "signin"
         else -> BottomNavItem.Home.route
     }
 

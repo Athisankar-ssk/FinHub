@@ -62,7 +62,7 @@ fun OnboardingScreen(navController: NavController, context: Context) {
                 sharedPreferences.edit().putBoolean("showOnboarding", false).apply()
 
                 // Navigate to welcome screen
-                navController.navigate("welcome") {
+                navController.navigate("signin") {
                     popUpTo("onboarding") { inclusive = true }
                 }
             },

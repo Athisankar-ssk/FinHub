@@ -1,41 +1,138 @@
 package com.example.finhub.ui.home
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.finhub.data.model.NewsArticle
 import com.example.finhub.ui.home.NewsViewModel
 import com.example.finhub.ui.home.NewsViewModelFactory
+import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(apiKey: String) {
     val viewModelFactory = remember { NewsViewModelFactory(apiKey) }
     val newsViewModel: NewsViewModel = viewModel(factory = viewModelFactory)
-
     val newsArticles by newsViewModel.newsArticles.collectAsState()
 
-    if (newsArticles.isEmpty()) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator()
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        gesturesEnabled = false, // Ensures the menu is fully hidden until clicked
+        drawerContent = {
+            if (drawerState.isOpen) { // Only show when explicitly opened
+                SideMenu { scope.launch { drawerState.close() } }
+            }
         }
-    } else {
-        NewsPager(newsArticles)
+    ) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("FinHub", fontWeight = FontWeight.Bold, fontSize = 20.sp) },
+                    navigationIcon = {
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Icon(Icons.Filled.Menu, contentDescription = "Menu")
+                        }
+                    }
+                )
+            }
+        ) { paddingValues ->
+            if (newsArticles.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                NewsPager(newsArticles, paddingValues)
+            }
+        }
     }
 }
 
 @Composable
-fun NewsPager(articles: List<NewsArticle>) {
+fun SideMenu(onClose: () -> Unit) {
+    ModalDrawerSheet(
+        modifier = Modifier.fillMaxSize(),
+        drawerContainerColor = Color.Black
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxHeight()
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onClose() },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Filled.ArrowForward, contentDescription = "Close", tint = Color.White)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Explore App", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            SideMenuItem("Daily Digest")
+            SideMenuItem("Saved Items")
+            SideMenuItem("Personalize Feed")
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("More", color = Color.Gray, fontSize = 14.sp)
+            SideMenuItem("Apply Now")
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("Settings", color = Color.Gray, fontSize = 14.sp)
+            SideMenuItem("Feed Gesture")
+            SideMenuItem("Notifications")
+            SideMenuItem("Appearance")
+        }
+    }
+}
+
+@Composable
+fun SideMenuItem(title: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+            .clickable { }
+            .background(Color.DarkGray, shape = MaterialTheme.shapes.medium)
+            .padding(16.dp)
+    ) {
+        Text(title, color = Color.White, fontSize = 16.sp)
+    }
+}
+
+@Composable
+fun NewsPager(articles: List<NewsArticle>, paddingValues: PaddingValues) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
     ) {
         items(articles) { article ->
             NewsCard(article)
