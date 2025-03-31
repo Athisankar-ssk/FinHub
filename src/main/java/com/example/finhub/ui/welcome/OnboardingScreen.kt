@@ -16,9 +16,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.finhub.R
+import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun OnboardingScreen(navController: NavController, context: Context) {
+    // Check if the user is logged in
+    val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+    val isLoggedIn = sharedPreferences.getBoolean("is_logged_in", false)
+
+    // If the user is already logged in, navigate to the home screen
+    if (isLoggedIn || FirebaseAuth.getInstance().currentUser != null) {
+        navController.navigate("home") {
+            popUpTo("onboarding") { inclusive = true }
+        }
+        return // Exit the function as the navigation happens immediately
+    }
+
+    // If not logged in, show onboarding screen
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -58,10 +72,9 @@ fun OnboardingScreen(navController: NavController, context: Context) {
         Button(
             onClick = {
                 // Save "showOnboarding = false" to SharedPreferences
-                val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
                 sharedPreferences.edit().putBoolean("showOnboarding", false).apply()
 
-                // Navigate to welcome screen
+                // Navigate to sign-in screen
                 navController.navigate("signin") {
                     popUpTo("onboarding") { inclusive = true }
                 }

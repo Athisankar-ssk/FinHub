@@ -15,7 +15,6 @@ import com.example.finhub.ui.components.BottomNavigationBar
 import com.example.finhub.ui.home.HomeScreen
 import com.example.finhub.ui.welcome.*
 
-
 @Composable
 fun AppNavHost(apiKey: String) {
     val navController = rememberNavController()
@@ -87,7 +86,7 @@ fun AppNavHost(apiKey: String) {
 
             // Main Screens (after login)
             composable(BottomNavItem.Home.route) {
-                HomeScreen(apiKey = apiKey)
+                HomeScreen(apiKey = apiKey, navController = navController)
             }
             composable(BottomNavItem.Trending.route) {
                 TrendingScreen()
