@@ -1,6 +1,8 @@
 package com.example.finhub.ui.navigation
 
 import android.content.Context
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -11,12 +13,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.*
-import com.example.finhub.ui.components.BottomNavigationBar
+import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
+import androidx.navigation.NavType
+
 import com.example.finhub.ui.home.HomeScreen
 import com.example.finhub.ui.welcome.*
+import com.example.finhub.ui.navigation.BottomNavItem
+import androidx.compose.material.icons.Icons
+import androidx.compose.material3.Icon
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.finhub.data.network.NewsArticle
+import com.example.finhub.ui.home.ArticleDetailScreen
+import com.example.finhub.ui.home.DevBytesTheme
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun AppNavHost(apiKey: String) {
+fun AppNavHost(finnhubApiKey: String, newsApiKey: String) {
     val navController = rememberNavController()
     val context = LocalContext.current
 
@@ -63,7 +79,8 @@ fun AppNavHost(apiKey: String) {
                     }
                 )
             }
-        }
+        },
+        containerColor = DevBytesTheme.darkBackground
     ) { innerPadding ->
         NavHost(
             navController = navController,
@@ -86,7 +103,7 @@ fun AppNavHost(apiKey: String) {
 
             // Main Screens (after login)
             composable(BottomNavItem.Home.route) {
-                HomeScreen(apiKey = apiKey, navController = navController)
+                HomeScreen(finnhubApiKey = finnhubApiKey, newsApiKey = newsApiKey, navController = navController)
             }
             composable(BottomNavItem.Trending.route) {
                 TrendingScreen()
@@ -97,10 +114,86 @@ fun AppNavHost(apiKey: String) {
             composable(BottomNavItem.Bookmark.route) {
                 BookmarkScreen()
             }
+
+            composable(
+                route = "articleDetail/{headline}/{content}/{imageUrl}/{source}/{datetime}",
+                arguments = listOf(
+                    navArgument("headline") { type = NavType.StringType },
+                    navArgument("content") { type = NavType.StringType },
+                    navArgument("imageUrl") { type = NavType.StringType },
+                    navArgument("source") { type = NavType.StringType },
+                    navArgument("datetime") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val headline = backStackEntry.arguments?.getString("headline") ?: ""
+                val content = backStackEntry.arguments?.getString("content") ?: ""
+                val imageUrl = backStackEntry.arguments?.getString("imageUrl") ?: ""
+                val source = backStackEntry.arguments?.getString("source") ?: ""
+                val dateAndTime = backStackEntry.arguments?.getLong("datetime") ?: 0L
+
+                val article = NewsArticle(
+                    headline = headline,
+                    content = content,
+                    image = imageUrl,
+                    source = source,
+                    summary = "",
+                    datetime = dateAndTime
+                )
+
+                ArticleDetailScreen(article = article)
+            }
         }
     }
 }
 
+@Composable
+fun BottomNavigationBar(
+    currentRoute: String,
+    onNavigate: (String) -> Unit
+) {
+    val items = listOf(
+        BottomNavItem.Home,
+        BottomNavItem.Trending,
+        BottomNavItem.Markets,
+        BottomNavItem.Bookmark
+    )
+
+    NavigationBar(
+        containerColor = DevBytesTheme.surfaceColor, // Use surfaceColor for the bar background
+        contentColor = DevBytesTheme.textPrimary, // Primary text/icon color
+        tonalElevation = 4.dp
+    ) {
+        items.forEach { item ->
+            NavigationBarItem(
+                icon = {
+                    Icon(
+                        painter = painterResource(id = item.icon),
+                        contentDescription = item.title,
+                        tint = if (currentRoute == item.route) DevBytesTheme.Purple80 else DevBytesTheme.textSecondary // Highlight selected item with Purple80
+                    )
+                },
+                label = {
+                    Text(
+                        text = item.title,
+                        color = if (currentRoute == item.route) DevBytesTheme.Purple80 else DevBytesTheme.textSecondary, // Match icon tint
+                        fontSize = 12.sp, // Consistent with Material3 typography
+                        fontWeight = if (currentRoute == item.route) FontWeight.Medium else FontWeight.Normal
+                    )
+                },
+                selected = currentRoute == item.route,
+                onClick = { onNavigate(item.route) },
+                alwaysShowLabel = true,
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = DevBytesTheme.Purple80, // Selected icon color
+                    unselectedIconColor = DevBytesTheme.textSecondary, // Unselected icon color
+                    selectedTextColor = DevBytesTheme.Purple80, // Selected text color
+                    unselectedTextColor = DevBytesTheme.textSecondary, // Unselected text color
+                    indicatorColor = DevBytesTheme.Purple40.copy(alpha = 0.3f) // Subtle indicator for selected item
+                )
+            )
+        }
+    }
+}
 @Composable
 fun TrendingScreen() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

@@ -90,4 +90,12 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
     implementation("com.google.android.gms:play-services-auth:21.1.1")
+
+    implementation("io.coil-kt:coil-compose:2.5.0")
+    implementation ("org.jsoup:jsoup:1.17.2")
+    //implementation ("org.jsoup:jsoup:1.16.1")
+    //implementation ("com.google.android.webkit:webkit:1.6.0")
+    implementation ("androidx.compose.material:material-icons-extended:1.6.0")
+    implementation ("androidx.work:work-runtime-ktx:2.8.1")
+
 }

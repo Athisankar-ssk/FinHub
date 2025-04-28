@@ -1,6 +1,5 @@
 package com.example.finhub.data.network
 
-import com.example.finhub.data.model.NewsArticle
 import retrofit2.http.GET
 import retrofit2.http.Query
 
