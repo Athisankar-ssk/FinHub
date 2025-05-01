@@ -23,6 +23,7 @@ class NewsFetchWorker(
     private val newsApiService = ApiClient.newsApi
     private val firebaseService = FirebaseService(context)
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override suspend fun doWork(): Result = coroutineScope {
         try {
             val finnhubNewsDeferred = async { fetchFinnhubFinanceNews() }
@@ -74,7 +75,7 @@ class NewsFetchWorker(
                     headline = article.title,
                     image = article.urlToImage ?: "",
                     source = article.source.name,
-                    datetime = firebaseService.parseNewsApiDate(article.publishedAt),
+                    datetime = article.publishedAt,
                     summary = article.description ?: "",
                     url = article.url
                 )

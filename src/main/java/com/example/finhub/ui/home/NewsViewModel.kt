@@ -50,42 +50,44 @@ class NewsViewModel(
                 val allNews = finnhubNews + newsApiNews
                 Log.d("NewsViewModel", "Fetched ${allNews.size} total articles")
 
-                // Process sequentially on a single thread to avoid race conditions
-                withContext(Dispatchers.IO) {
-                    val uniqueArticles = mutableListOf<NewsArticle>()
+                val uniqueArticles = mutableListOf<NewsArticle>()
 
-                    // First filter out duplicates
-                    allNews.forEach { article ->
-                        article.url?.let { url ->
-                            if (url.isNotEmpty() && !processedUrls.contains(url)) {
-                                processedUrls.add(url)
-                                uniqueArticles.add(article)
-                            } else {
-                                Log.d("NewsViewModel", "Filtered duplicate URL before processing: $url")
-                            }
-                        }
-                    }
-
-                    Log.d("NewsViewModel", "Processing ${uniqueArticles.size} unique articles")
-
-                    // Now process the unique articles
-                    uniqueArticles.forEach { article ->
-                        val docId = firebaseService.storeArticle(article)
-                        if (docId != null) {
-                            Log.d("NewsViewModel", "Stored article: ${article.headline}, ID: $docId")
+                // Filter out duplicates
+                allNews.forEach { article ->
+                    article.url?.let { url ->
+                        if (url.isNotEmpty() && !processedUrls.contains(url)) {
+                            processedUrls.add(url)
+                            uniqueArticles.add(article)
                         } else {
-                            Log.d("NewsViewModel", "Skipped article: ${article.headline} (already exists or scraping failed)")
+                            Log.d("NewsViewModel", "Filtered duplicate URL before processing: $url")
                         }
                     }
                 }
 
+                Log.d("NewsViewModel", "Processing ${uniqueArticles.size} unique articles")
+
+                // Process each unique article sequentially
+                for (article in uniqueArticles) {
+                    Log.d("NewsViewModel", "Attempting to store article: ${article.headline}")
+                    val docId = firebaseService.storeArticle(article)
+                    if (docId != null) {
+                        Log.d("NewsViewModel", "Successfully stored article: ${article.headline}, ID: $docId")
+                    } else {
+                        Log.d("NewsViewModel", "Failed to store article: ${article.headline} (AI processing failed)")
+                    }
+                    // Optional delay if you still encounter rate limiting
+                    // delay(5000) // Wait for 5 seconds before processing the next article
+                }
+
                 // Refresh the displayed articles after all processing is complete
                 loadArticlesFromFirestore()
+
             } catch (e: Exception) {
                 Log.e("NewsViewModel", "Error in fetchAndStoreNews: ${e.message}")
             }
         }
-    }    private fun loadArticlesFromFirestore() {
+    }
+    private fun loadArticlesFromFirestore() {
         viewModelScope.launch {
             val articles = firebaseService.getArticles()
             _newsArticles.value = articles
@@ -120,7 +122,7 @@ class NewsViewModel(
                     headline = article.title,
                     image = article.urlToImage ?: "",
                     source = article.source.name,
-                    datetime = firebaseService.parseNewsApiDate(article.publishedAt),
+                    datetime = article.publishedAt,
                     summary = article.description ?: "",
                     url = article.url
                 )

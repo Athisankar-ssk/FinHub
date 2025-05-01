@@ -1,5 +1,7 @@
 package com.example.finhub.ui.home
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -19,13 +21,19 @@ import coil.compose.AsyncImage
 import com.example.finhub.data.network.NewsArticle
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
+import java.text.SimpleDateFormat
+import java.time.format.DateTimeFormatter
+import java.time.*
+import java.util.Date
+import java.util.Locale
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun ArticleDetailScreen(article: NewsArticle) {
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = Color(0xFF1E1E1E)// Using the same color as HomeScreen
+        color = Color(0xFF1E1E1E)
     ) {
         Column(
             modifier = Modifier
@@ -33,14 +41,16 @@ fun ArticleDetailScreen(article: NewsArticle) {
                 .verticalScroll(rememberScrollState())
         ) {
             // Image at the top
-            AsyncImage(
-                model = article.image,
-                contentDescription = article.headline,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(250.dp),
-                contentScale = ContentScale.Crop
-            )
+            if (!article.image.isNullOrEmpty()) {
+                AsyncImage(
+                    model = article.image,
+                    contentDescription = article.headline,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(250.dp),
+                    contentScale = ContentScale.Crop
+                )
+            }
 
             // Row for date/time and source
             Row(
@@ -56,8 +66,29 @@ fun ArticleDetailScreen(article: NewsArticle) {
                         .background(DevBytesTheme.Purple40)
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
+
+
+                    val formattedTime = try {
+                        val input = article.datetime
+                        val zonedDateTime: ZonedDateTime? = when {
+                            input?.matches(Regex("^\\d{10,}$")) == true -> {
+                                // Unix timestamp in seconds
+                                Instant.ofEpochSecond(input.toLong()).atZone(ZoneId.of("Asia/Kolkata"))
+                            }
+                            input != null -> {
+                                // ISO 8601 date string
+                                Instant.parse(input).atZone(ZoneId.of("Asia/Kolkata"))
+                            }
+                            else -> null
+                        }
+
+                        zonedDateTime?.format(DateTimeFormatter.ofPattern("dd MMM yyyy")) ?: "Unknown date"
+                    } catch (e: Exception) {
+                        "Unknown date"
+                    }
+
                     Text(
-                        text = article.datetime?.toString() ?: "Unknown date",
+                        text = formattedTime,
                         color = DevBytesTheme.textPrimary,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium

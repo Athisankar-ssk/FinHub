@@ -1,9 +1,10 @@
-
 package com.example.finhub
 
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -22,6 +23,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun FinHubApp() {
     val finnhubApiKey = "cuslsapr01qnihs7d1lgcuslsapr01qnihs7d1m0" // Replace with your actual Finnhub API key
@@ -37,6 +39,7 @@ fun FinHubApp() {
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Preview(showBackground = true)
 @Composable
 fun FinHubAppPreview() {

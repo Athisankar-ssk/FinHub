@@ -4,11 +4,13 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.PagerState
@@ -17,18 +19,21 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Article
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -39,29 +44,36 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.example.finhub.data.network.NewsArticle
+import com.example.finhub.ui.bookmark.BookmarkViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 // DevBytes-inspired color palette using the provided purple theme
 object DevBytesTheme {
-    val Purple80 = Color(0xFFD0BCFF)
+    val gradientBrush = Brush.verticalGradient(
+        colors = listOf(
+            Color.Black,
+            Color(0xFF0F172A), // slate-900 equivalent
+            Color.Black
+        )
+    )
+    val Purple80 = Color(0xFFAE95E8)
     val PurpleGrey80 = Color(0xFFCCC2DC)
     val Pink80 = Color(0xFFEFB8C8)
 
-    val Purple40 = Color(0xFF6650a4)
+    val Purple40 = Color(0xFF3C1C87)
     val PurpleGrey40 = Color(0xFF625b71)
     val Pink40 = Color(0xFF7D5260)
 
-    // Primary colors for the app
     val primaryColor = Purple40
     val secondaryColor = PurpleGrey40
     val accentColor = Pink40
 
-    // Background and text colors
     val darkBackground = Color(0xFF121212)
     val surfaceColor = Color(0xFF1E1E1E)
     val textPrimary = Color.White
@@ -76,6 +88,9 @@ fun HomeScreen(finnhubApiKey: String, newsApiKey: String, navController: NavHost
     val newsViewModel: NewsViewModel = viewModel(
         factory = NewsViewModel.provideFactory(finnhubApiKey, newsApiKey, context)
     )
+    val bookmarkViewModel: BookmarkViewModel = viewModel(
+        factory = BookmarkViewModel.provideFactory(context)
+    )
     val newsArticles by newsViewModel.newsArticles.collectAsState()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -85,7 +100,9 @@ fun HomeScreen(finnhubApiKey: String, newsApiKey: String, navController: NavHost
         gesturesEnabled = true,
         drawerContent = {
             if (drawerState.isOpen) {
-                SideMenu(navController = navController, onClose = { scope.launch { drawerState.close() } })
+                SideMenu(
+                    navController = navController,
+                    onClose = { scope.launch { drawerState.close() } })
             }
         }
     ) {
@@ -148,31 +165,67 @@ fun HomeScreen(finnhubApiKey: String, newsApiKey: String, navController: NavHost
                         val article = newsArticles[page]
                         val pageOffset = calculatePageOffset(pagerState, page)
 
-                        // Use the updated NewsCard that doesn't make the whole card clickable
                         NewsCard(
                             article = article,
                             onClick = {
+                                try {
+                                    // Validate article data
+                                    if (article.headline.isBlank()) {
+                                        Toast.makeText(context, "Article headline is missing", Toast.LENGTH_SHORT).show()
+                                        return@NewsCard
+                                    }
 
-                                navController.navigate(
-                                    "articleDetail/${Uri.encode(article.headline)}/${Uri.encode(article.content)}/${Uri.encode(article.image)}/${Uri.encode(article.source)}/${Uri.encode(
-                                        article.datetime.toString()
-                                    )}"
-                                )
-                                // This will only trigger when "Read Full Article" is clicked
-//                                article.url?.let { url ->
-//                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-//                                    context.startActivity(intent)
-//                                }
+                                    // Create the route with proper encoding and null handling
+                                    val route = "articleDetail/" +
+                                        Uri.encode(article.headline) + "/" +
+                                        Uri.encode(article.content ?: "") + "/" +
+                                        Uri.encode(article.image ?: "") + "/" +
+                                        Uri.encode(article.source ?: "") + "/" +
+                                        Uri.encode(article.datetime)
+
+                                    // Navigate with proper error handling
+                                    navController.navigate(route) {
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e("HomeScreen", "Navigation error: ${e.message}", e)
+                                    Toast.makeText(context, "Error opening article: ${e.message}", Toast.LENGTH_SHORT).show()
+                                }
                             },
+                            onBookmarkClick = {
+                                bookmarkViewModel.toggleBookmark(article)
+                                val message = if (!bookmarkViewModel.isArticleBookmarked(article.url ?: "")) {
+                                    " Bookmarked \n \"${article.headline}\""
+                                } else {
+                                    "  Bookmark removed \n \"${article.headline}\""
+                                }
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                            },
+                            isBookmarked = bookmarkViewModel.isArticleBookmarked(article.url ?: ""),
+                            currentPosition = page + 1,
+                            totalCards = newsArticles.size,
                             modifier = Modifier
                                 .fillMaxSize()
                                 .graphicsLayer {
-                                    translationY = pageOffset * size.height * 0.05f
-                                    alpha = lerp(
+                                    // Enhanced animation for DevBytes-like swipe
+                                    translationY = pageOffset * size.height * 0.1f
+                                    scaleX = lerp(
                                         start = 0.85f,
                                         stop = 1f,
                                         fraction = 1f - abs(pageOffset).coerceIn(0f, 1f)
                                     )
+                                    scaleY = lerp(
+                                        start = 0.85f,
+                                        stop = 1f,
+                                        fraction = 1f - abs(pageOffset).coerceIn(0f, 1f)
+                                    )
+                                    alpha = lerp(
+                                        start = 0.5f,
+                                        stop = 1f,
+                                        fraction = 1f - abs(pageOffset).coerceIn(0f, 1f)
+                                    )
+                                    rotationX = pageOffset * 15f
                                 }
                         )
                     }
@@ -194,7 +247,7 @@ fun calculatePageOffset(pagerState: PagerState, page: Int): Float {
 }
 
 @Composable
-fun SideMenu(navController: NavHostController, onClose: () -> Unit) {
+fun SideMenu(navController: NavController, onClose: () -> Unit) {
     val auth = FirebaseAuth.getInstance()
     val currentUser = auth.currentUser
     val context = LocalContext.current
@@ -209,7 +262,6 @@ fun SideMenu(navController: NavHostController, onClose: () -> Unit) {
                 .fillMaxHeight()
                 .padding(16.dp)
         ) {
-            // Header
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -240,7 +292,6 @@ fun SideMenu(navController: NavHostController, onClose: () -> Unit) {
             }
             Divider(color = DevBytesTheme.textSecondary.copy(alpha = 0.3f))
             Spacer(modifier = Modifier.height(24.dp))
-            // Menu Items
             SideMenuItem(
                 title = "Daily Digest",
                 icon = Icons.Filled.Star,
@@ -260,7 +311,6 @@ fun SideMenu(navController: NavHostController, onClose: () -> Unit) {
                 onClick = { /* Navigate or handle */ }
             )
             Spacer(modifier = Modifier.weight(1f))
-            // Logout Button
             Button(
                 onClick = {
                     auth.signOut()
@@ -287,7 +337,12 @@ fun SideMenu(navController: NavHostController, onClose: () -> Unit) {
 }
 
 @Composable
-fun SideMenuItem(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, textColor: Color, onClick: () -> Unit) {
+fun SideMenuItem(
+    title: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    textColor: Color,
+    onClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -312,96 +367,175 @@ fun SideMenuItem(title: String, icon: androidx.compose.ui.graphics.vector.ImageV
 }
 
 @Composable
-fun NewsCard(article: NewsArticle, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun SwipeProgressLine(
+    currentPosition: Int,
+    totalCards: Int,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(2.dp)
+            .background(Color.Gray.copy(alpha = 0.3f))
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(currentPosition.toFloat() / totalCards.coerceAtLeast(1))
+                .height(2.dp)
+                .background(DevBytesTheme.Purple80)
+        )
+    }
+}
+
+@Composable
+fun NewsCard(
+    article: NewsArticle,
+    onClick: () -> Unit,
+    onBookmarkClick: () -> Unit,
+    isBookmarked: Boolean,
+    currentPosition: Int,
+    totalCards: Int,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
     Surface(
         modifier = modifier.fillMaxSize(),
         color = DevBytesTheme.surfaceColor,
-        shape = RoundedCornerShape(0.dp)
+        shape = RoundedCornerShape(2.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.SpaceBetween // This ensures spacing between top and bottom
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Column {
-                // Image section
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(220.dp)
-                ) {
-                    AsyncImage(
-                        model = article.image,
-                        contentDescription = article.headline,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-
-                    Box(
+            // Content section with weight to push bottom row down
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                if (article.image.isNullOrEmpty()) {
+                    Column(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.Transparent,
-                                        DevBytesTheme.surfaceColor.copy(alpha = 0.2f)
-                                    ),
-                                    startY = 550f,
-                                    endY = 600f
-                                )
-                            )
-                    )
-                    // Category tag like in the screenshot ("The Big Tech")
-                    Box(
-                        modifier = Modifier
-                            .padding(16.dp, 5.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(DevBytesTheme.Purple40)
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                            .align(Alignment.BottomStart)
+                            .fillMaxWidth()
+                            .padding(16.dp)
                     ) {
                         Text(
-                            text = "The Big Tech",
-                            color = DevBytesTheme.textPrimary,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
+                            text = article.headline,
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 26.sp,
+                                lineHeight = 32.sp
+                            ),
+                            maxLines = 5,
+                            overflow = TextOverflow.Ellipsis,
+                            color = DevBytesTheme.textPrimary
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        val sentences = article.summary.split(Regex("(?<=[.!?])\\s+(?=[A-Z])"))
+                            .filter { it.trim().isNotEmpty() }
+                            .map { it.trim() }
+
+                        sentences.forEach { sentence ->
+                            Row(
+                                modifier = Modifier.padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.Top
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Star,
+                                    contentDescription = null,
+                                    tint = DevBytesTheme.Purple80,
+                                    modifier = Modifier
+                                        .size(18.dp)
+                                        .padding(top = 4.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = sentence,
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontSize = 18.sp,
+                                        lineHeight = 22.sp
+                                    ),
+                                    color = DevBytesTheme.textSecondary
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                    ) {
+                        AsyncImage(
+                            model = article.image,
+                            contentDescription = article.headline,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color.Transparent,
+                                            DevBytesTheme.surfaceColor.copy(alpha = 0.2f)
+                                        ),
+                                        startY = 550f,
+                                        endY = 600f
+                                    )
+                                )
+                        )
+                        Box(
+                            modifier = Modifier
+                                .padding(16.dp, 5.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(DevBytesTheme.Purple40)
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                .align(Alignment.BottomStart)
+                        ) {
+                            Text(
+                                text = article.source,
+                                color = DevBytesTheme.textPrimary,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            text = article.headline,
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 24.sp,
+                                lineHeight = 28.sp
+                            ),
+                            maxLines = 5,
+                            overflow = TextOverflow.Ellipsis,
+                            color = DevBytesTheme.textPrimary
+                        )
+
+                        Text(
+                            text = article.summary,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontSize = 18.sp,
+                                lineHeight = 24.sp
+                            ),
+                            color = DevBytesTheme.textSecondary
                         )
                     }
                 }
-
-                // Content area
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    // Headline
-                    Text(
-                        text = article.headline,
-                        style = MaterialTheme.typography.headlineSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 22.sp,
-                            lineHeight = 28.sp
-                        ),
-                        maxLines = 5,
-                        overflow = TextOverflow.Ellipsis,
-                        color = DevBytesTheme.textPrimary
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Summary
-                    Text(
-                        text = article.summary,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontSize = 16.sp,
-                            lineHeight = 24.sp
-                        ),
-                        color = DevBytesTheme.textSecondary
-                    )
-                }
             }
 
-            // Bottom section with source and read button - exactly like in the screenshot
+            // Bottom section that will always be at the end
             Column(
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -420,21 +554,21 @@ fun NewsCard(article: NewsArticle, onClick: () -> Unit, modifier: Modifier = Mod
                         // Globe icon
                         Box(
                             modifier = Modifier
-                                .size(36.dp)
+                                .size(48.dp)
                                 .clip(RoundedCornerShape(18.dp))
                                 .background(DevBytesTheme.surfaceColor.copy(alpha = 0.5f))
-                                .padding(8.dp),
+                                .padding(0.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Public,
+                                imageVector = Icons.Default.Article,
                                 contentDescription = "Source",
                                 tint = DevBytesTheme.Purple80,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(45.dp)
                             )
                         }
 
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
 
                         Column {
                             Text(
@@ -443,62 +577,52 @@ fun NewsCard(article: NewsArticle, onClick: () -> Unit, modifier: Modifier = Mod
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium
                             )
-                            Text(
-                                text = "Read Full Article",
-                                color = DevBytesTheme.textSecondary.copy(alpha = 0.7f),
-                                fontSize = 12.sp,
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.clickable { onClick() }
-                            )
+                            ) {
+                                Text(
+                                    text = "Read Full Article",
+                                    color = DevBytesTheme.textSecondary.copy(alpha = 0.7f),
+                                    fontSize = 12.sp
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    imageVector = Icons.Default.OpenInNew,
+                                    contentDescription = "Open in browser",
+                                    tint = DevBytesTheme.textSecondary.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
                         }
                     }
 
-                    // Action buttons row - like in the screenshot
+                    // Action buttons row
                     Row(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Other buttons would go here for like, bookmark, etc.
-                        // For example:
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(RoundedCornerShape(20.dp))
-                                .background(Color.Black.copy(alpha = 0.3f))
-                                .padding(8.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ThumbUp,
-                                contentDescription = "Like",
-                                tint = DevBytesTheme.textPrimary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(Color.Black.copy(alpha = 0.3f))
-                                .padding(8.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Bookmark,
-                                contentDescription = "Bookmark",
-                                tint = DevBytesTheme.textPrimary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(Color.Black.copy(alpha = 0.3f))
+                                .clickable {
+                                    val shareIntent = Intent().apply {
+                                        action = Intent.ACTION_SEND
+                                        type = "text/plain"
+                                        putExtra(Intent.EXTRA_SUBJECT, article.headline)
+                                        putExtra(Intent.EXTRA_TEXT, """
+                                            ${article.headline}
+                                            
+                                            ${article.summary}
+                                            
+                                            Read more at: ${article.url}
+                                            
+                                            Source: ${article.source}
+                                        """.trimIndent())
+                                    }
+                                    context.startActivity(Intent.createChooser(shareIntent, "Share via"))
+                                }
                                 .padding(8.dp),
                             contentAlignment = Alignment.Center
                         ) {
@@ -509,38 +633,38 @@ fun NewsCard(article: NewsArticle, onClick: () -> Unit, modifier: Modifier = Mod
                                 modifier = Modifier.size(18.dp)
                             )
                         }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(20.dp))
+                                .clickable { onBookmarkClick() }
+                                .padding(8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = if (isBookmarked) Icons.Default.Bookmark else Icons.Default.Bookmark,
+                                contentDescription = "Bookmark",
+                                tint = if (isBookmarked) DevBytesTheme.Purple80 else DevBytesTheme.textPrimary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
 
-                // Progress bar at bottom
-//                LinearProgressIndicator(
-//                    progress = { 0.3f }, // This would be dynamically calculated
-//                    modifier = Modifier
-//                        .fillMaxWidth()
-//                        .height(2.dp),
-//                    color = DevBytesTheme.Purple80,
-//                    trackColor = DevBytesTheme.Purple80.copy(alpha = 0.2f)
-//                )
-//
-//                // Stories remaining count - position at the bottom
-//                Box(
-//                    modifier = Modifier
-//                        .fillMaxWidth()
-//                        .padding(8.dp),
-//                    contentAlignment = Alignment.Center
-//                ) {
-//                    Text(
-//                        text = "32 more stories to go.",
-//                        color = DevBytesTheme.textSecondary,
-//                        fontSize = 12.sp
-//                    )
-//                }
+                // Progress line at the very bottom
+                SwipeProgressLine(
+                    currentPosition = currentPosition,
+                    totalCards = totalCards,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }
 }
 
-// Utility function for linear interpolation
 fun lerp(start: Float, stop: Float, fraction: Float): Float {
     return start + fraction * (stop - start)
 }

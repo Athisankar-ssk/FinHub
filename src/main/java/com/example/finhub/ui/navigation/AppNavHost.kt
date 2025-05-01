@@ -13,22 +13,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.*
-import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.NavType
-
 import com.example.finhub.ui.home.HomeScreen
 import com.example.finhub.ui.welcome.*
-import com.example.finhub.ui.navigation.BottomNavItem
-import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Icon
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.finhub.R
 import com.example.finhub.data.network.NewsArticle
 import com.example.finhub.ui.home.ArticleDetailScreen
 import com.example.finhub.ui.home.DevBytesTheme
+import com.example.finhub.ui.bookmark.BookmarkScreen
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -40,13 +38,11 @@ fun AppNavHost(finnhubApiKey: String, newsApiKey: String) {
         context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
     }
 
-    // Check if onboarding was shown and user is logged in
     val isOnboardingCompleted = remember {
         !sharedPreferences.getBoolean("showOnboarding", true)
     }
 
     val isUserLoggedIn = remember {
-        // Example: Check if user token exists
         sharedPreferences.getString("user_token", null) != null
     }
 
@@ -65,7 +61,7 @@ fun AppNavHost(finnhubApiKey: String, newsApiKey: String) {
                     BottomNavItem.Home.route,
                     BottomNavItem.Trending.route,
                     BottomNavItem.Markets.route,
-                    BottomNavItem.Bookmark.route
+                    BottomNavItem.Bookmarks.route
                 )
             ) {
                 BottomNavigationBar(
@@ -87,7 +83,6 @@ fun AppNavHost(finnhubApiKey: String, newsApiKey: String) {
             startDestination = startDestination,
             modifier = Modifier.padding(innerPadding)
         ) {
-            // Onboarding and Auth Screens
             composable("onboarding") {
                 OnboardingScreen(navController, context)
             }
@@ -101,7 +96,6 @@ fun AppNavHost(finnhubApiKey: String, newsApiKey: String) {
                 SignUpScreen(navController)
             }
 
-            // Main Screens (after login)
             composable(BottomNavItem.Home.route) {
                 HomeScreen(finnhubApiKey = finnhubApiKey, newsApiKey = newsApiKey, navController = navController)
             }
@@ -111,8 +105,8 @@ fun AppNavHost(finnhubApiKey: String, newsApiKey: String) {
             composable(BottomNavItem.Markets.route) {
                 MarketsScreen()
             }
-            composable(BottomNavItem.Bookmark.route) {
-                BookmarkScreen()
+            composable(BottomNavItem.Bookmarks.route) {
+                BookmarkScreen(navController)
             }
 
             composable(
@@ -129,7 +123,7 @@ fun AppNavHost(finnhubApiKey: String, newsApiKey: String) {
                 val content = backStackEntry.arguments?.getString("content") ?: ""
                 val imageUrl = backStackEntry.arguments?.getString("imageUrl") ?: ""
                 val source = backStackEntry.arguments?.getString("source") ?: ""
-                val dateAndTime = backStackEntry.arguments?.getLong("datetime") ?: 0L
+                val dateAndTime = backStackEntry.arguments?.getString("datetime")?: ""
 
                 val article = NewsArticle(
                     headline = headline,
@@ -155,7 +149,7 @@ fun BottomNavigationBar(
         BottomNavItem.Home,
         BottomNavItem.Trending,
         BottomNavItem.Markets,
-        BottomNavItem.Bookmark
+        BottomNavItem.Bookmarks
     )
 
     NavigationBar(
@@ -168,13 +162,13 @@ fun BottomNavigationBar(
                 icon = {
                     Icon(
                         painter = painterResource(id = item.icon),
-                        contentDescription = item.title,
+                        contentDescription = item.label,
                         tint = if (currentRoute == item.route) DevBytesTheme.Purple80 else DevBytesTheme.textSecondary // Highlight selected item with Purple80
                     )
                 },
                 label = {
                     Text(
-                        text = item.title,
+                        text = item.label,
                         color = if (currentRoute == item.route) DevBytesTheme.Purple80 else DevBytesTheme.textSecondary, // Match icon tint
                         fontSize = 12.sp, // Consistent with Material3 typography
                         fontWeight = if (currentRoute == item.route) FontWeight.Medium else FontWeight.Normal
@@ -194,6 +188,7 @@ fun BottomNavigationBar(
         }
     }
 }
+
 @Composable
 fun TrendingScreen() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -209,7 +204,7 @@ fun MarketsScreen() {
 }
 
 @Composable
-fun BookmarkScreen() {
+fun BookmarkScreen(navController: NavHostController) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text("Bookmarked News")
     }

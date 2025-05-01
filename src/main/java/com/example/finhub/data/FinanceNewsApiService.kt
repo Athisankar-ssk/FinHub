@@ -18,5 +18,5 @@ data class FinanceNewsArticle(
     val summary: String,
     val image: String,
     val source: String,
-    val datetime: Long
+    val datetime: String
 )

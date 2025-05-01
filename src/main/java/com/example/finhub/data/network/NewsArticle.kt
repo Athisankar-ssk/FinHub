@@ -1,12 +1,12 @@
 package com.example.finhub.data.network
 
 data class NewsArticle(
-    val id: String? = null, // Firestore document ID
+    val id: String? = null,
     val headline: String,
     val image: String,
     val source: String,
-    val datetime: Long,
+    val datetime: String,
     val summary: String,
     val url: String? = null,
-    val content: String? = null // Scraped article content
+    val content: String? = null
 )
