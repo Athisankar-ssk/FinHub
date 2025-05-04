@@ -108,5 +108,10 @@ dependencies {
     implementation ("androidx.room:room-ktx:2.6.1")
 
     implementation ("androidx.datastore:datastore-preferences:1.0.0")
+    implementation ("com.squareup.okhttp3:logging-interceptor:4.9.3")
+
+    implementation("com.google.android.gms:play-services-base:18.3.0")
+    implementation("com.google.android.gms:play-services-auth:20.7.0")
+    implementation("com.google.android.gms:play-services-safetynet:18.0.1")
 
 }

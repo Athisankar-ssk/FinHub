@@ -2,7 +2,7 @@ package com.example.finhub.data.local
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.example.finhub.data.network.NewsArticle
+import com.example.finhub.data.model.NewsArticle
 
 @Entity(tableName = "bookmarks")
 data class Bookmark(

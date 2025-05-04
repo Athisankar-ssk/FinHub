@@ -1,4 +1,4 @@
-package com.example.finhub.data
+package com.example.finhub.data.api
 
 import retrofit2.http.GET
 import retrofit2.http.Query

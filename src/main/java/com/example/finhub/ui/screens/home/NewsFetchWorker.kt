@@ -1,4 +1,4 @@
-package com.example.finhub.ui.home
+package com.example.finhub.ui.screens.home
 
 import android.content.Context
 import android.os.Build
@@ -6,9 +6,9 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.example.finhub.data.network.ApiClient
-import com.example.finhub.data.network.FirebaseService
-import com.example.finhub.data.network.NewsArticle
+import com.example.finhub.data.api.ApiClient
+import com.example.finhub.data.database.FirebaseService
+import com.example.finhub.data.model.NewsArticle
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 

@@ -1,4 +1,4 @@
-package com.example.finhub.data.network
+package com.example.finhub.data.model
 
 data class NewsArticle(
     val id: String? = null,
@@ -8,5 +8,8 @@ data class NewsArticle(
     val datetime: String,
     val summary: String,
     val url: String? = null,
-    val content: String? = null
+    val content: String? = null,
+    val region: String = "global",     
+    val category: String = "general",  
+    val savedDate: String = ""         
 )

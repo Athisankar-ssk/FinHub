@@ -1,4 +1,4 @@
-package com.example.finhub.ui.welcome
+package com.example.finhub.ui.screens.welcome
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

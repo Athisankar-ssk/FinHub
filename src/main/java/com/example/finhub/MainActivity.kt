@@ -15,6 +15,7 @@ import com.example.finhub.ui.navigation.AppNavHost
 import com.example.finhub.ui.theme.FinHubTheme
 
 class MainActivity : ComponentActivity() {
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -26,17 +27,7 @@ class MainActivity : ComponentActivity() {
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun FinHubApp() {
-    val finnhubApiKey = "cuslsapr01qnihs7d1lgcuslsapr01qnihs7d1m0" // Replace with your actual Finnhub API key
-    val newsApiKey = "cda48b3dfe61437492014dec4ef5a703" // Replace with your actual NewsAPI.org API key
-
-    FinHubTheme {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            AppNavHost(finnhubApiKey = finnhubApiKey, newsApiKey = newsApiKey)
-        }
-    }
+    AppNavHost()
 }
 
 @RequiresApi(Build.VERSION_CODES.O)

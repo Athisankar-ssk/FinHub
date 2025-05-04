@@ -1,4 +1,4 @@
-package com.example.finhub.ui.bookmark
+package com.example.finhub.ui.screens.bookmark
 
 import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -20,8 +20,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.finhub.ui.home.NewsCard
-import com.example.finhub.ui.home.DevBytesTheme
+import com.example.finhub.ui.screens.home.NewsCard
+import com.example.finhub.ui.screens.home.DevBytesTheme
 import android.net.Uri
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
@@ -31,7 +31,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.graphics.graphicsLayer
-import com.example.finhub.ui.home.SideMenu
+import com.example.finhub.viewmodel.BookmarkViewModel
+import com.example.finhub.ui.screens.home.SideMenu
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 

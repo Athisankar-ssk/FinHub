@@ -1,4 +1,4 @@
-package com.example.finhub.ui.home
+package com.example.finhub.ui.screens.home
 
 import android.content.Context
 import android.content.Intent
@@ -10,7 +10,6 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.PagerState
@@ -23,12 +22,9 @@ import androidx.compose.material.icons.filled.Article
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Public
-import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,8 +43,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
-import com.example.finhub.data.network.NewsArticle
-import com.example.finhub.ui.bookmark.BookmarkViewModel
+import com.example.finhub.data.model.NewsArticle
+import com.example.finhub.viewmodel.BookmarkViewModel
+import com.example.finhub.viewmodel.NewsViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -83,10 +80,10 @@ object DevBytesTheme {
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(finnhubApiKey: String, newsApiKey: String, navController: NavHostController) {
+fun HomeScreen(navController: NavHostController) {
     val context = LocalContext.current
     val newsViewModel: NewsViewModel = viewModel(
-        factory = NewsViewModel.provideFactory(finnhubApiKey, newsApiKey, context)
+        factory = NewsViewModel.provideFactory(context)
     )
     val bookmarkViewModel: BookmarkViewModel = viewModel(
         factory = BookmarkViewModel.provideFactory(context)

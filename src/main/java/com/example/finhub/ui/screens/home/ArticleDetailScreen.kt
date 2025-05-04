@@ -1,4 +1,4 @@
-package com.example.finhub.ui.home
+package com.example.finhub.ui.screens.home
 
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -18,14 +18,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.example.finhub.data.network.NewsArticle
+import com.example.finhub.data.model.NewsArticle
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
-import java.text.SimpleDateFormat
 import java.time.format.DateTimeFormatter
 import java.time.*
-import java.util.Date
-import java.util.Locale
 
 
 @RequiresApi(Build.VERSION_CODES.O)

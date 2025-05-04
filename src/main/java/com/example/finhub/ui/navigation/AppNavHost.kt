@@ -15,22 +15,24 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import androidx.navigation.NavType
-import com.example.finhub.ui.home.HomeScreen
-import com.example.finhub.ui.welcome.*
+import com.example.finhub.ui.screens.home.HomeScreen
 import androidx.compose.material3.Icon
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.finhub.R
-import com.example.finhub.data.network.NewsArticle
-import com.example.finhub.ui.home.ArticleDetailScreen
-import com.example.finhub.ui.home.DevBytesTheme
-import com.example.finhub.ui.bookmark.BookmarkScreen
+import com.example.finhub.data.model.NewsArticle
+import com.example.finhub.ui.screens.home.ArticleDetailScreen
+import com.example.finhub.ui.screens.home.DevBytesTheme
+import com.example.finhub.ui.screens.bookmark.BookmarkScreen
+import com.example.finhub.ui.screens.welcome.OnboardingScreen
+import com.example.finhub.ui.screens.welcome.SignInScreen
+import com.example.finhub.ui.screens.welcome.SignUpScreen
+import com.example.finhub.ui.screens.welcome.WelcomeScreen
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun AppNavHost(finnhubApiKey: String, newsApiKey: String) {
+fun AppNavHost() {
     val navController = rememberNavController()
     val context = LocalContext.current
 
@@ -97,7 +99,7 @@ fun AppNavHost(finnhubApiKey: String, newsApiKey: String) {
             }
 
             composable(BottomNavItem.Home.route) {
-                HomeScreen(finnhubApiKey = finnhubApiKey, newsApiKey = newsApiKey, navController = navController)
+                HomeScreen(navController = navController)
             }
             composable(BottomNavItem.Trending.route) {
                 TrendingScreen()

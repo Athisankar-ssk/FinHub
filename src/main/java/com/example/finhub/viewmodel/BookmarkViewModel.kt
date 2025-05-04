@@ -1,4 +1,4 @@
-package com.example.finhub.ui.bookmark
+package com.example.finhub.viewmodel
 
 import android.content.Context
 import androidx.compose.runtime.mutableStateMapOf
@@ -7,7 +7,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.finhub.data.local.AppDatabase
 import com.example.finhub.data.local.Bookmark
-import com.example.finhub.data.network.NewsArticle
+import com.example.finhub.data.model.NewsArticle
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

@@ -1,4 +1,4 @@
-package com.example.finhub.ui.welcome
+package com.example.finhub.ui.screens.welcome
 
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult

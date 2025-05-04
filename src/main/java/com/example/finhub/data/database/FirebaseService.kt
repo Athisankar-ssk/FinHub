@@ -1,8 +1,8 @@
-package com.example.finhub.data.network
+package com.example.finhub.data.database
 
 import android.content.Context
-import android.os.Build
-import androidx.annotation.RequiresApi
+import com.example.finhub.data.network.NetworkUtils
+import com.example.finhub.data.model.NewsArticle
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.Dispatchers
@@ -14,11 +14,11 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
-import java.time.Instant
-import java.time.OffsetDateTime
-import java.time.format.DateTimeFormatter
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 import java.util.concurrent.TimeUnit
-import kotlin.math.min
 
 class FirebaseService(private val context: Context) {
     private val db = FirebaseFirestore.getInstance()
@@ -194,7 +194,10 @@ class FirebaseService(private val context: Context) {
                 "datetime" to article.datetime,
                 "summary" to summary,
                 "url" to article.url,
-                "content" to content
+                "content" to content,
+                "region" to article.region,
+                "category" to article.category,
+                "savedDate" to article.savedDate
             )
 
             // Store using document ID based on URL hash
