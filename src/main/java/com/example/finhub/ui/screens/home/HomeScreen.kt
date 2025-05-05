@@ -15,9 +15,11 @@ import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.filled.Article
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
@@ -25,12 +27,18 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -46,9 +54,14 @@ import coil.compose.AsyncImage
 import com.example.finhub.data.model.NewsArticle
 import com.example.finhub.viewmodel.BookmarkViewModel
 import com.example.finhub.viewmodel.NewsViewModel
+import com.example.finhub.viewmodel.TopicsViewModel
+import com.google.firebase.annotations.concurrent.Background
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import kotlin.math.abs
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.time.ZoneOffset
 
 // DevBytes-inspired color palette using the provided purple theme
 object DevBytesTheme {
@@ -77,6 +90,66 @@ object DevBytesTheme {
     val textSecondary = Color(0xFFCCCCCC)
 }
 
+@Composable
+fun TopNavBar(
+    selectedTab: String,
+    onTabSelected: (String) -> Unit,
+    followedTopics: List<String>,
+    onAddTopicClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val tabs = listOf("Daily", "My Feed") + followedTopics
+
+    Box(
+        modifier = modifier.fillMaxWidth()
+    ) {
+        ScrollableTabRow(
+            selectedTabIndex = tabs.indexOf(selectedTab).coerceAtLeast(0),
+            containerColor = DevBytesTheme.darkBackground,
+            contentColor = DevBytesTheme.textPrimary,
+            edgePadding = 0.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(end = 48.dp),
+            divider = {}
+        ) {
+            tabs.forEachIndexed { index, tab ->
+                Tab(
+                    selected = selectedTab == tab,
+                    onClick = { onTabSelected(tab) },
+                    text = {
+                        Text(
+                            text = tab,
+                            color = if (selectedTab == tab) DevBytesTheme.textPrimary else DevBytesTheme.textSecondary,
+                            fontWeight = if (selectedTab == tab) FontWeight.Bold else FontWeight.Normal,
+                            modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp),
+                            maxLines = 1
+                        )
+                    }
+                )
+            }
+        }
+        
+        // Fixed position Add button
+        IconButton(
+            onClick = onAddTopicClick,
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .background(
+                    color =DevBytesTheme.darkBackground,  // Dark purple background
+                    shape = RoundedCornerShape(0.dp)
+                )
+                .padding(4.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Add topics",
+                tint = Color(0xFF832BFF)  // Light purple icon
+            )
+        }
+    }
+}
+
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -88,9 +161,34 @@ fun HomeScreen(navController: NavHostController) {
     val bookmarkViewModel: BookmarkViewModel = viewModel(
         factory = BookmarkViewModel.provideFactory(context)
     )
+    val topicsViewModel: TopicsViewModel = viewModel(
+        factory = TopicsViewModel.provideFactory()
+    )
+    
     val newsArticles by newsViewModel.newsArticles.collectAsState()
+    val followedTopics by topicsViewModel.followedTopics.collectAsState()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    
+    // State for selected tab
+    var selectedTab by remember { mutableStateOf("Daily") }
+
+    // Effect to refresh topics when coming back from PersonalizeFeed
+    LaunchedEffect(Unit) {
+        topicsViewModel.refreshTopics()
+    }
+
+    // Utility functions for date handling
+    fun getCurrentDateInUTC(): String {
+        return LocalDateTime.now(ZoneOffset.UTC)
+            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+    }
+
+    fun getYesterdayDateInUTC(): String {
+        return LocalDateTime.now(ZoneOffset.UTC)
+            .minusDays(1)
+            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -99,12 +197,14 @@ fun HomeScreen(navController: NavHostController) {
             if (drawerState.isOpen) {
                 SideMenu(
                     navController = navController,
-                    onClose = { scope.launch { drawerState.close() } })
+                    onClose = { scope.launch { drawerState.close() } }
+                )
             }
         }
     ) {
         Scaffold(
             topBar = {
+                Column {
                 TopAppBar(
                     title = {
                         Text(
@@ -130,6 +230,18 @@ fun HomeScreen(navController: NavHostController) {
                     ),
                     modifier = Modifier.zIndex(1f)
                 )
+                    
+                    TopNavBar(
+                        selectedTab = selectedTab,
+                        onTabSelected = { tab -> selectedTab = tab },
+                        followedTopics = followedTopics,
+                        onAddTopicClick = {
+                            navController.navigate("personalize_feed") {
+                                launchSingleTop = true
+                            }
+                        }
+                    )
+                }
             },
             containerColor = DevBytesTheme.darkBackground
         ) { paddingValues ->
@@ -145,7 +257,77 @@ fun HomeScreen(navController: NavHostController) {
                     }
                 }
             } else {
-                val pagerState = rememberPagerState(pageCount = { newsArticles.size })
+                val filteredArticles = when (selectedTab) {
+                    "Daily" -> {
+                        // First get daily category articles
+                        val dailyArticles = newsArticles.filter { 
+                            it.category == "daily finance" || 
+                            it.category == "daily business" 
+                        }
+                        
+                        // Get today's articles
+                        val todayArticles = dailyArticles.filter {
+                            it.savedDate.startsWith(getCurrentDateInUTC())
+                        }
+                        
+                        // If no today's articles, get yesterday's
+                        val filteredDailyArticles = if (todayArticles.isEmpty()) {
+                            dailyArticles.filter { 
+                                it.savedDate.startsWith(getYesterdayDateInUTC()) 
+                            }
+                        } else {
+                            todayArticles
+                        }
+                        
+                        // Sort by datetime in descending order
+                        filteredDailyArticles.sortedByDescending { it.datetime }
+                    }
+                    "My Feed" -> {
+                        // Get lowercase list of followed topics
+                        val followedCategories = followedTopics.map { it.lowercase() }
+                        
+                        // Get articles that would appear in Daily tab (today and yesterday's daily news)
+                        val dailyArticles = newsArticles.filter { 
+                            (it.category == "daily finance" || it.category == "daily business") &&
+                            (it.savedDate.startsWith(getCurrentDateInUTC()) || 
+                             it.savedDate.startsWith(getYesterdayDateInUTC()))
+                        }
+                        
+                        // Filter and sort by datetime in descending order
+                        newsArticles.filter { article ->
+                            val category = article.category.lowercase()
+                            !followedCategories.contains(category) && 
+                            !dailyArticles.contains(article)
+                        }.sortedByDescending { it.datetime }
+                    }
+                    else -> {
+                        // Filter by topic and sort by datetime in descending order
+                        newsArticles.filter { article ->
+                            article.category.lowercase() == selectedTab.lowercase() ||
+                            article.category.lowercase().contains(selectedTab.lowercase())
+                        }.sortedByDescending { it.datetime }
+                    }
+                }
+
+                if (filteredArticles.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                            .background(DevBytesTheme.darkBackground),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = when (selectedTab) {
+                                "My Feed" -> "No general news available"
+                                else -> "No news available for $selectedTab"
+                            },
+                            color = DevBytesTheme.textSecondary,
+                            fontSize = 16.sp
+                        )
+                    }
+                } else {
+                    val pagerState = rememberPagerState(pageCount = { filteredArticles.size })
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -159,20 +341,18 @@ fun HomeScreen(navController: NavHostController) {
                         contentPadding = PaddingValues(0.dp),
                         pageSpacing = 0.dp
                     ) { page ->
-                        val article = newsArticles[page]
+                            val article = filteredArticles[page]
                         val pageOffset = calculatePageOffset(pagerState, page)
 
                         NewsCard(
                             article = article,
                             onClick = {
                                 try {
-                                    // Validate article data
                                     if (article.headline.isBlank()) {
                                         Toast.makeText(context, "Article headline is missing", Toast.LENGTH_SHORT).show()
                                         return@NewsCard
                                     }
 
-                                    // Create the route with proper encoding and null handling
                                     val route = "articleDetail/" +
                                         Uri.encode(article.headline) + "/" +
                                         Uri.encode(article.content ?: "") + "/" +
@@ -180,7 +360,6 @@ fun HomeScreen(navController: NavHostController) {
                                         Uri.encode(article.source ?: "") + "/" +
                                         Uri.encode(article.datetime)
 
-                                    // Navigate with proper error handling
                                     navController.navigate(route) {
                                         launchSingleTop = true
                                         restoreState = true
@@ -201,11 +380,10 @@ fun HomeScreen(navController: NavHostController) {
                             },
                             isBookmarked = bookmarkViewModel.isArticleBookmarked(article.url ?: ""),
                             currentPosition = page + 1,
-                            totalCards = newsArticles.size,
+                                totalCards = filteredArticles.size,
                             modifier = Modifier
                                 .fillMaxSize()
                                 .graphicsLayer {
-                                    // Enhanced animation for DevBytes-like swipe
                                     translationY = pageOffset * size.height * 0.1f
                                     scaleX = lerp(
                                         start = 0.85f,
@@ -225,6 +403,7 @@ fun HomeScreen(navController: NavHostController) {
                                     rotationX = pageOffset * 15f
                                 }
                         )
+                        }
                     }
                 }
             }
@@ -259,20 +438,59 @@ fun SideMenu(navController: NavController, onClose: () -> Unit) {
                 .fillMaxHeight()
                 .padding(16.dp)
         ) {
+            // Header with FinHub and close arrow
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 32.dp, top = 16.dp),
+                    .padding(bottom = 32.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = "FinHub",
-                    color = DevBytesTheme.Purple80,
-                    fontSize = 32.sp,
+                    color = DevBytesTheme.textPrimary,
+                    fontSize = 28.sp,
                     fontWeight = FontWeight.Bold
                 )
+                IconButton(onClick = onClose) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowForward,
+                        contentDescription = "Close Menu",
+                        tint = DevBytesTheme.textPrimary
+                    )
+                }
             }
+
+            // User Profile Section
             if (currentUser != null) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 24.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // User Avatar Circle
+                    Box(
+                        modifier = Modifier
+                            .size(60.dp)
+                            .background(
+                                color = Color(0xFF6C47FF),
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = (currentUser.displayName?.firstOrNull() ?: "U").toString(),
+                            color = DevBytesTheme.textPrimary,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.width(16.dp))
+                    
+                    // Name and Email
+                    Column {
                 Text(
                     text = currentUser.displayName ?: "User",
                     color = DevBytesTheme.textPrimary,
@@ -285,29 +503,61 @@ fun SideMenu(navController: NavController, onClose: () -> Unit) {
                     color = DevBytesTheme.textSecondary,
                     fontSize = 14.sp
                 )
-                Spacer(modifier = Modifier.height(24.dp))
+                    }
+                }
             }
-            Divider(color = DevBytesTheme.textSecondary.copy(alpha = 0.3f))
-            Spacer(modifier = Modifier.height(24.dp))
-            SideMenuItem(
-                title = "Daily Digest",
-                icon = Icons.Filled.Star,
-                textColor = DevBytesTheme.textPrimary,
-                onClick = { /* Navigate or handle */ }
+
+            // PERSONAL Section
+            Text(
+                text = "PERSONAL",
+                color = DevBytesTheme.textSecondary,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(start = 8.dp, bottom = 16.dp)
             )
+
+            // Menu Items in Cards
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 6.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFF1E1E1E)
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
             SideMenuItem(
-                title = "Bookmark",
-                icon = Icons.Filled.Bookmark,
-                textColor = DevBytesTheme.textPrimary,
-                onClick = { /* Navigate or handle */ }
-            )
+                    title = "Saved Items",
+                    icon = Icons.Default.Bookmark,
+                    onClick = {
+                        navController.navigate("bookmarks")
+                        onClose()
+                    }
+                )
+            }
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 6.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFF1E1E1E)
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
             SideMenuItem(
-                title = "Settings",
-                icon = Icons.Filled.Settings,
-                textColor = DevBytesTheme.textPrimary,
-                onClick = { /* Navigate or handle */ }
-            )
+                    title = "Personalize Feed",
+                    icon = Icons.Default.Person,
+                    onClick = {
+                        navController.navigate("personalize_feed")
+                        onClose()
+                    }
+                )
+            }
+
             Spacer(modifier = Modifier.weight(1f))
+
+            // Logout Button
             Button(
                 onClick = {
                     auth.signOut()
@@ -322,12 +572,23 @@ fun SideMenu(navController: NavController, onClose: () -> Unit) {
                     .fillMaxWidth()
                     .height(50.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = DevBytesTheme.Purple40,
+                    containerColor = Color(0xFF2D2350),
                     contentColor = DevBytesTheme.textPrimary
                 ),
                 shape = RoundedCornerShape(8.dp)
             ) {
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Logout,
+                        contentDescription = "Logout",
+                        tint = DevBytesTheme.textPrimary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
                 Text("Log Out", fontWeight = FontWeight.Medium, fontSize = 16.sp)
+                }
             }
         }
     }
@@ -336,29 +597,38 @@ fun SideMenu(navController: NavController, onClose: () -> Unit) {
 @Composable
 fun SideMenuItem(
     title: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    textColor: Color,
+    icon: ImageVector,
     onClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
-            .padding(vertical = 16.dp, horizontal = 12.dp),
+            .clickable(onClick = onClick)
+            .padding(vertical = 24.dp, horizontal = 16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = icon,
             contentDescription = title,
-            tint = DevBytesTheme.Purple80,
+                tint = DevBytesTheme.textPrimary,
             modifier = Modifier.size(24.dp)
         )
-        Spacer(modifier = Modifier.width(20.dp))
+            Spacer(modifier = Modifier.width(16.dp))
         Text(
             text = title,
-            color = textColor,
+                color = DevBytesTheme.textPrimary,
             fontSize = 16.sp,
-            fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Normal
+            )
+        }
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = "Navigate",
+            tint = DevBytesTheme.textSecondary
         )
     }
 }

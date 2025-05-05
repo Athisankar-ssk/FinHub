@@ -29,6 +29,8 @@ import com.example.finhub.ui.screens.welcome.OnboardingScreen
 import com.example.finhub.ui.screens.welcome.SignInScreen
 import com.example.finhub.ui.screens.welcome.SignUpScreen
 import com.example.finhub.ui.screens.welcome.WelcomeScreen
+import com.example.finhub.ui.screens.welcome.InterestSelectionScreen
+import com.example.finhub.ui.screens.welcome.PersonalizeFeedScreen
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -51,33 +53,10 @@ fun AppNavHost() {
     val startDestination = when {
         !isOnboardingCompleted -> "onboarding"
         !isUserLoggedIn -> "signin"
-        else -> BottomNavItem.Home.route
+        else -> "home"
     }
 
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
-
     Scaffold(
-        bottomBar = {
-            if (currentRoute in listOf(
-                    BottomNavItem.Home.route,
-                    BottomNavItem.Trending.route,
-                    BottomNavItem.Markets.route,
-                    BottomNavItem.Bookmarks.route
-                )
-            ) {
-                BottomNavigationBar(
-                    currentRoute = currentRoute ?: BottomNavItem.Home.route,
-                    onNavigate = { route ->
-                        navController.navigate(route) {
-                            popUpTo(navController.graph.startDestinationId) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    }
-                )
-            }
-        },
         containerColor = DevBytesTheme.darkBackground
     ) { innerPadding ->
         NavHost(
@@ -98,16 +77,11 @@ fun AppNavHost() {
                 SignUpScreen(navController)
             }
 
-            composable(BottomNavItem.Home.route) {
+            composable("home") {
                 HomeScreen(navController = navController)
             }
-            composable(BottomNavItem.Trending.route) {
-                TrendingScreen()
-            }
-            composable(BottomNavItem.Markets.route) {
-                MarketsScreen()
-            }
-            composable(BottomNavItem.Bookmarks.route) {
+            
+            composable("bookmarks") {
                 BookmarkScreen(navController)
             }
 
@@ -138,6 +112,18 @@ fun AppNavHost() {
 
                 ArticleDetailScreen(article = article)
             }
+
+            composable("interest_selection") {
+                InterestSelectionScreen(navController) {
+                    navController.navigate("home") {
+                        popUpTo("interest_selection") { inclusive = true }
+                    }
+                }
+            }
+
+            composable("personalize_feed") {
+                PersonalizeFeedScreen(navController)
+            }
         }
     }
 }
@@ -155,8 +141,8 @@ fun BottomNavigationBar(
     )
 
     NavigationBar(
-        containerColor = DevBytesTheme.surfaceColor, // Use surfaceColor for the bar background
-        contentColor = DevBytesTheme.textPrimary, // Primary text/icon color
+        containerColor = DevBytesTheme.surfaceColor,
+        contentColor = DevBytesTheme.textPrimary,
         tonalElevation = 4.dp
     ) {
         items.forEach { item ->
@@ -165,14 +151,14 @@ fun BottomNavigationBar(
                     Icon(
                         painter = painterResource(id = item.icon),
                         contentDescription = item.label,
-                        tint = if (currentRoute == item.route) DevBytesTheme.Purple80 else DevBytesTheme.textSecondary // Highlight selected item with Purple80
+                        tint = if (currentRoute == item.route) DevBytesTheme.Purple80 else DevBytesTheme.textSecondary
                     )
                 },
                 label = {
                     Text(
                         text = item.label,
-                        color = if (currentRoute == item.route) DevBytesTheme.Purple80 else DevBytesTheme.textSecondary, // Match icon tint
-                        fontSize = 12.sp, // Consistent with Material3 typography
+                        color = if (currentRoute == item.route) DevBytesTheme.Purple80 else DevBytesTheme.textSecondary,
+                        fontSize = 12.sp,
                         fontWeight = if (currentRoute == item.route) FontWeight.Medium else FontWeight.Normal
                     )
                 },
@@ -180,11 +166,11 @@ fun BottomNavigationBar(
                 onClick = { onNavigate(item.route) },
                 alwaysShowLabel = true,
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = DevBytesTheme.Purple80, // Selected icon color
-                    unselectedIconColor = DevBytesTheme.textSecondary, // Unselected icon color
-                    selectedTextColor = DevBytesTheme.Purple80, // Selected text color
-                    unselectedTextColor = DevBytesTheme.textSecondary, // Unselected text color
-                    indicatorColor = DevBytesTheme.Purple40.copy(alpha = 0.3f) // Subtle indicator for selected item
+                    selectedIconColor = DevBytesTheme.Purple80,
+                    unselectedIconColor = DevBytesTheme.textSecondary,
+                    selectedTextColor = DevBytesTheme.Purple80,
+                    unselectedTextColor = DevBytesTheme.textSecondary,
+                    indicatorColor = DevBytesTheme.Purple40.copy(alpha = 0.3f)
                 )
             )
         }

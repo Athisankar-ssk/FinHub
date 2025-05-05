@@ -26,6 +26,7 @@ import com.example.finhub.utils.triggerGoogleSignIn
 import com.google.firebase.auth.FirebaseAuth
 import com.google.android.gms.auth.api.identity.Identity
 import android.content.Context
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,6 +36,7 @@ fun SignInScreen(navController: NavController) {
 
     val context = LocalContext.current
     val auth = FirebaseAuth.getInstance()
+    val scope = rememberCoroutineScope()
 
     // One Tap Google Sign-In client
     val oneTapClient = remember { Identity.getSignInClient(context) }
@@ -50,7 +52,19 @@ fun SignInScreen(navController: NavController) {
                 auth = auth,
                 context = context
             ) {
-                navController.navigate("home")
+                // After Google sign-in, check for interests
+                scope.launch {
+                    val interests = com.example.finhub.data.database.FirebaseUserPreferencesService.getUserInterests()
+                    if (interests.isNullOrEmpty()) {
+                        navController.navigate("interest_selection") {
+                            popUpTo("signin") { inclusive = true }
+                        }
+                    } else {
+                        navController.navigate("home") {
+                            popUpTo("signin") { inclusive = true }
+                        }
+                    }
+                }
             }
         }
     }
@@ -133,7 +147,19 @@ fun SignInScreen(navController: NavController) {
                                 // Save login state
                                 sharedPreferences.edit().putBoolean("is_logged_in", true).apply()
                                 Toast.makeText(context, "Sign In Successful", Toast.LENGTH_SHORT).show()
-                                navController.navigate("home")
+                                // After email/password sign-in, check for interests
+                                scope.launch {
+                                    val interests = com.example.finhub.data.database.FirebaseUserPreferencesService.getUserInterests()
+                                    if (interests.isNullOrEmpty()) {
+                                        navController.navigate("interest_selection") {
+                                            popUpTo("signin") { inclusive = true }
+                                        }
+                                    } else {
+                                        navController.navigate("home") {
+                                            popUpTo("signin") { inclusive = true }
+                                        }
+                                    }
+                                }
                             } else {
                                 Toast.makeText(
                                     context,

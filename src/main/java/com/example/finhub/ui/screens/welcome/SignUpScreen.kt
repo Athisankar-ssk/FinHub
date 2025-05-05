@@ -28,6 +28,8 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.android.gms.auth.api.identity.Identity
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,6 +41,7 @@ fun SignUpScreen(navController: NavController) {
 
     val context = LocalContext.current
     val auth = Firebase.auth
+    val scope = rememberCoroutineScope()
 
     val oneTapClient = remember { Identity.getSignInClient(context) }
     val signInRequest = remember { getGoogleSignInRequest() }
@@ -54,7 +57,18 @@ fun SignUpScreen(navController: NavController) {
             context
         ) {
             isLoading = false
-            navController.navigate("home")
+            scope.launch {
+                val interests = com.example.finhub.data.database.FirebaseUserPreferencesService.getUserInterests()
+                if (interests.isNullOrEmpty()) {
+                    navController.navigate("interest_selection") {
+                        popUpTo("signup") { inclusive = true }
+                    }
+                } else {
+                    navController.navigate("home") {
+                        popUpTo("signup") { inclusive = true }
+                    }
+                }
+            }
         }
     }
 
@@ -141,7 +155,18 @@ fun SignUpScreen(navController: NavController) {
                                     user?.updateProfile(profileUpdates)
                                         ?.addOnCompleteListener {
                                             Toast.makeText(context, "Account Created Successfully", Toast.LENGTH_SHORT).show()
-                                            navController.navigate("home")
+                                            scope.launch {
+                                                val interests = com.example.finhub.data.database.FirebaseUserPreferencesService.getUserInterests()
+                                                if (interests.isNullOrEmpty()) {
+                                                    navController.navigate("interest_selection") {
+                                                        popUpTo("signup") { inclusive = true }
+                                                    }
+                                                } else {
+                                                    navController.navigate("home") {
+                                                        popUpTo("signup") { inclusive = true }
+                                                    }
+                                                }
+                                            }
                                         }
                                 } else {
                                     Toast.makeText(context, "Sign Up Failed: ${task.exception?.message}", Toast.LENGTH_SHORT).show()

@@ -237,7 +237,9 @@ class FirebaseService(private val context: Context) {
                         datetime = doc.getString("datetime") ?: "",
                         summary = doc.getString("summary") ?: "",
                         url = doc.getString("url"),
-                        content = doc.getString("content")
+                        content = doc.getString("content"),
+                        category = doc.getString("category") ?: "general",
+                        savedDate = doc.getString("savedDate") ?: doc.getString("datetime") ?: ""
                     )
                 } catch (e: Exception) {
                     null

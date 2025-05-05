@@ -33,7 +33,7 @@ class NewsDataCollector(
         runBlocking {
 //            try {
 //                // First fetch all news without processing
-//                val allNews = fetchGNewsBusinessIndia("finance","india") + fetchGNewsBusinessIndia("business", "india")
+//                val allNews = fetchGNewsBusinessIndia("daily finance","india") + fetchGNewsBusinessIndia("daily business", "india")
 //                Log.d("NewsDataCollector", "Fetched ${allNews.size} total articles")
 //
 //                val uniqueArticles = mutableListOf<NewsArticle>()
