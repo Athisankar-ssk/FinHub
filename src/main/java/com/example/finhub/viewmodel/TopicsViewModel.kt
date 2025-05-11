@@ -3,7 +3,7 @@ package com.example.finhub.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.finhub.data.database.FirebaseUserPreferencesService
+import com.example.finhub.data.database.FirebaseUserService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,7 +20,7 @@ class TopicsViewModel : ViewModel() {
     private fun loadFollowedTopics() {
         viewModelScope.launch {
             try {
-                val topics = FirebaseUserPreferencesService.getUserInterests()
+                val topics = FirebaseUserService.getUserInterests()
                 _followedTopics.value = topics
             } catch (e: Exception) {
                 // Handle error

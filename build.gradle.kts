@@ -115,4 +115,9 @@ dependencies {
     implementation("com.google.android.gms:play-services-safetynet:18.0.1")
     implementation ("androidx.compose.material:material:1.5.4")
 
+    implementation ("com.google.accompanist:accompanist-pager:0.32.0")
+    implementation ("com.google.accompanist:accompanist-pager-indicators:0.32.0")
+
+    implementation ("com.airbnb.android:lottie-compose:6.1.0")
+
 }

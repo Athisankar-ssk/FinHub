@@ -1,4 +1,4 @@
-package com.example.finhub.data.service
+package com.example.finhub.admin
 
 import android.content.Context
 import android.util.Log
@@ -117,7 +117,7 @@ class NewsDataCollector(
 
             try {
                 // First fetch all news without processing
-                val allNews = fetchSerpNews("stock market", "stock market","india")
+                val allNews = fetchSerpNews("business", "business","india")
 
                 Log.d("NewsDataCollector", "Fetched ${allNews.size} total articles")
 

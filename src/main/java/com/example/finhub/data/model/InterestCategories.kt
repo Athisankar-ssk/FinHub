@@ -4,12 +4,12 @@ val INTEREST_CATEGORIES = listOf(
     "Stock Market",
     "Cryptocurrency",
     "Mutual Funds",
-    "Tax & Budgeting",
-    "Banking & Insurance",
+    "Tax and Budgeting",
+    "Banking and Insurance",
     "FinTech",
-    "Tech & Business",
+    "Tech and Business",
     "Global Economy",
     "Startups",
-    "SMEs & MSMEs",
+    "SMEs and MSMEs",
     "Government Policies"
 ) 

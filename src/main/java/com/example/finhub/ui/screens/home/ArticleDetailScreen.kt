@@ -1,8 +1,11 @@
 package com.example.finhub.ui.screens.home
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -21,8 +24,14 @@ import coil.compose.AsyncImage
 import com.example.finhub.data.model.NewsArticle
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextDecoration
+import com.example.finhub.ui.theme.HomeBackgroundTheme
+import com.example.finhub.ui.theme.MediumVilot
+import com.example.finhub.ui.theme.OnboardingTextSecondary
 import java.time.format.DateTimeFormatter
 import java.time.*
+import java.util.Locale
 
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -35,6 +44,7 @@ fun ArticleDetailScreen(article: NewsArticle) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(HomeBackgroundTheme)
                 .verticalScroll(rememberScrollState())
         ) {
             // Image at the top
@@ -65,24 +75,40 @@ fun ArticleDetailScreen(article: NewsArticle) {
                 ) {
 
 
-                    val formattedTime = try {
-                        val input = article.datetime
-                        val zonedDateTime: ZonedDateTime? = when {
-                            input?.matches(Regex("^\\d{10,}$")) == true -> {
-                                // Unix timestamp in seconds
-                                Instant.ofEpochSecond(input.toLong()).atZone(ZoneId.of("Asia/Kolkata"))
-                            }
-                            input != null -> {
-                                // ISO 8601 date string
-                                Instant.parse(input).atZone(ZoneId.of("Asia/Kolkata"))
-                            }
-                            else -> null
-                        }
+//                    val formattedTime = try {
+//                        val input = article.datetime
+//                        val zonedDateTime: ZonedDateTime? = when {
+//                            input?.matches(Regex("^\\d{10,}$")) == true -> {
+//                                // Unix timestamp in seconds
+//                                Instant.ofEpochSecond(input.toLong()).atZone(ZoneId.of("Asia/Kolkata"))
+//                            }
+//                            input != null -> {
+//                                // ISO 8601 date string
+//                                Instant.parse(input).atZone(ZoneId.of("Asia/Kolkata"))
+//                            }
+//                            else -> null
+//                        }
+//
+//                        zonedDateTime?.format(DateTimeFormatter.ofPattern("dd MMM yyyy")) ?: "Unknown date"
+//                    } catch (e: Exception) {
+//                        "Unknown date"
+//                    }
+//
 
-                        zonedDateTime?.format(DateTimeFormatter.ofPattern("dd MMM yyyy")) ?: "Unknown date"
+                    val formattedTime = try {
+                        val input = article.datetime // example: "2025-05-09"
+                        val date = LocalDate.parse(input, DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                        val today = LocalDate.now()
+                        val yesterday = today.minusDays(1)
+                        when (date) {
+                            today -> "Today"
+                            yesterday -> "Yesterday"
+                            else -> date.format(DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH))
+                        }
                     } catch (e: Exception) {
-                        "Unknown date"
+                        "\uD83D\uDCC6"
                     }
+
 
                     Text(
                         text = formattedTime,
@@ -131,6 +157,35 @@ fun ArticleDetailScreen(article: NewsArticle) {
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 24.dp)
             )
+
+            val context = LocalContext.current
+            if (!article.url.isNullOrEmpty()) {
+                Text(
+                    text ="Source : ${article.source}",
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        color = OnboardingTextSecondary,
+                        fontSize = 18.sp,
+                        lineHeight = 28.sp
+                    ),
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 8.dp)
+                )
+
+                Text(
+                    text = "Read on Publisher's Site ↗",
+                    color = MediumVilot,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 46.dp)
+                        .clickable {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(article.url))
+                            context.startActivity(intent)
+                        }
+                )
+            }
         }
     }
 }

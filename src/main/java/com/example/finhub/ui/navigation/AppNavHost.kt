@@ -3,25 +3,33 @@ package com.example.finhub.ui.navigation
 import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import androidx.navigation.NavType
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.finhub.ui.screens.home.HomeScreen
-import androidx.compose.material3.Icon
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.finhub.data.model.NewsArticle
 import com.example.finhub.ui.screens.home.ArticleDetailScreen
 import com.example.finhub.ui.screens.home.DevBytesTheme
 import com.example.finhub.ui.screens.bookmark.BookmarkScreen
@@ -31,48 +39,149 @@ import com.example.finhub.ui.screens.welcome.SignUpScreen
 import com.example.finhub.ui.screens.welcome.WelcomeScreen
 import com.example.finhub.ui.screens.welcome.InterestSelectionScreen
 import com.example.finhub.ui.screens.welcome.PersonalizeFeedScreen
+import com.example.finhub.data.model.NewsArticle
+import com.example.finhub.ui.components.RandomFact
+import com.example.finhub.ui.theme.HomeBackgroundTheme
+import com.example.finhub.ui.theme.OnboardingTextSecondary
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.tasks.await
+import com.example.finhub.admin.AdminScreen
+import com.example.finhub.data.database.FirebaseAdminService
+import com.example.finhub.ui.screens.today.TodayStoryScreen
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AppNavHost() {
     val navController = rememberNavController()
     val context = LocalContext.current
+    val auth = FirebaseAuth.getInstance()
+    val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
 
-    val sharedPreferences = remember {
-        context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-    }
+    // State for start destination
+    var startDestination by remember { mutableStateOf("loading") }
 
-    val isOnboardingCompleted = remember {
-        !sharedPreferences.getBoolean("showOnboarding", true)
-    }
+//    val isOnboardingCompleted = remember {
+//        sharedPreferences.getBoolean("showOnboarding", false)
+//    }
+//
+//    val isUserLoggedIn = remember {
+//        sharedPreferences.getBoolean("is_logged_in", true) && auth.currentUser != null
+//    }
+//    startDestination = when {
+//        !isOnboardingCompleted -> "onboarding"
+//        !isUserLoggedIn -> "welcome"
+//        else -> "home"
+//    }
+    LaunchedEffect(Unit) {
+        // Check if onboarding is completed
+        val isOnboardingCompleted = sharedPreferences.getBoolean("showOnboarding", true)
 
-    val isUserLoggedIn = remember {
-        sharedPreferences.getString("user_token", null) != null
-    }
+        // Validate Firebase user
+        val currentUser = try {
+            auth.currentUser?.reload()?.await()
+            auth.currentUser
+        } catch (e: Exception) {
+            null
+        }
 
-    val startDestination = when {
-        !isOnboardingCompleted -> "onboarding"
-        !isUserLoggedIn -> "signin"
-        else -> "home"
+        // Reset is_logged_in if no valid user
+        if (currentUser == null) {
+            sharedPreferences.edit()
+                .putBoolean("is_logged_in", false)
+                .apply()
+        }
+
+        // Set start destination based on auth and session type
+        startDestination = if (!isOnboardingCompleted) {
+            "onboarding"
+        } else if (FirebaseAdminService.isAdminSession(context)) {
+            "admin"
+        } else if (currentUser == null) {
+            "welcome"
+        } else {
+            // Check for interests before going to home
+            val interests = com.example.finhub.data.database.FirebaseUserService.getUserInterests()
+            if (interests.isEmpty()) {
+                "interest_selection"
+            } else {
+                "home"
+            }
+        }
     }
 
     Scaffold(
-        containerColor = DevBytesTheme.darkBackground
+        containerColor = DevBytesTheme.darkBackground,
+//        bottomBar = {
+//            if (currentRoute in listOf("home", "trending", "markets", "bookmarks")) {
+//                BottomNavigationBar(
+//                    currentRoute = currentRoute ?: "home",
+//                    onNavigate = { route ->
+//                        navController.navigate(route) {
+//                            popUpTo(navController.graph.startDestinationId) {
+//                                saveState = true
+//                            }
+//                            launchSingleTop = true
+//                            restoreState = true
+//                        }
+//                    }
+//                )
+//            }
+//        }
     ) { innerPadding ->
         NavHost(
             navController = navController,
             startDestination = startDestination,
             modifier = Modifier.padding(innerPadding)
         ) {
+            composable("loading") {
+                Box(
+                    modifier = Modifier.fillMaxSize().background(HomeBackgroundTheme),
+                    contentAlignment = Alignment.Center
+
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        val composition by rememberLottieComposition(
+                            spec = LottieCompositionSpec.Asset("loading_animation.json")
+                        )
+
+                        val progress by animateLottieCompositionAsState(
+                            composition = composition,
+                            iterations = LottieConstants.IterateForever
+                        )
+
+                        LottieAnimation(
+                            composition = composition,
+                            progress = { progress },
+                            modifier = Modifier.size(100.dp)
+                        )
+                        val loadingFact = remember { RandomFact() }
+                        Text(
+                            text = loadingFact,
+                            fontSize = 18.sp,
+                            color = OnboardingTextSecondary,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                }
+            }
+
             composable("onboarding") {
                 OnboardingScreen(navController, context)
             }
+
             composable("welcome") {
                 WelcomeScreen(navController)
             }
+
             composable("signin") {
                 SignInScreen(navController)
             }
+
             composable("signup") {
                 SignUpScreen(navController)
             }
@@ -80,26 +189,36 @@ fun AppNavHost() {
             composable("home") {
                 HomeScreen(navController = navController)
             }
-            
+
+            composable("trending") {
+                TrendingScreen()
+            }
+
+            composable("markets") {
+                MarketsScreen()
+            }
+
             composable("bookmarks") {
                 BookmarkScreen(navController)
             }
 
             composable(
-                route = "articleDetail/{headline}/{content}/{imageUrl}/{source}/{datetime}",
+                route = "articleDetail/{headline}/{content}/{imageUrl}/{source}/{datetime}/{url}",
                 arguments = listOf(
                     navArgument("headline") { type = NavType.StringType },
                     navArgument("content") { type = NavType.StringType },
                     navArgument("imageUrl") { type = NavType.StringType },
                     navArgument("source") { type = NavType.StringType },
-                    navArgument("datetime") { type = NavType.StringType }
+                    navArgument("datetime") { type = NavType.StringType },
+                    navArgument("url") { type = NavType.StringType }
                 )
             ) { backStackEntry ->
                 val headline = backStackEntry.arguments?.getString("headline") ?: ""
                 val content = backStackEntry.arguments?.getString("content") ?: ""
                 val imageUrl = backStackEntry.arguments?.getString("imageUrl") ?: ""
                 val source = backStackEntry.arguments?.getString("source") ?: ""
-                val dateAndTime = backStackEntry.arguments?.getString("datetime")?: ""
+                val dateAndTime = backStackEntry.arguments?.getString("datetime") ?: ""
+                val url = backStackEntry.arguments?.getString("url") ?: ""
 
                 val article = NewsArticle(
                     headline = headline,
@@ -107,22 +226,27 @@ fun AppNavHost() {
                     image = imageUrl,
                     source = source,
                     summary = "",
-                    datetime = dateAndTime
+                    datetime = dateAndTime,
+                    url = url
                 )
 
                 ArticleDetailScreen(article = article)
             }
 
             composable("interest_selection") {
-                InterestSelectionScreen(navController) {
-                    navController.navigate("home") {
-                        popUpTo("interest_selection") { inclusive = true }
-                    }
-                }
+                InterestSelectionScreen(navController)
             }
 
             composable("personalize_feed") {
                 PersonalizeFeedScreen(navController)
+            }
+
+            composable("admin") {
+                AdminScreen(navController)
+            }
+
+            composable("today_story") {
+                TodayStoryScreen(navController)
             }
         }
     }

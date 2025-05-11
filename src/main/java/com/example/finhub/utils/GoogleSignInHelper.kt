@@ -10,6 +10,11 @@ import com.google.android.gms.auth.api.identity.SignInClient
 import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import androidx.navigation.NavController
+import com.example.finhub.data.database.FirebaseUserService
 
 // Create and return the Google Sign-In request
 fun getGoogleSignInRequest(): BeginSignInRequest {
@@ -46,6 +51,7 @@ fun handleGoogleSignInResult(
     oneTapClient: SignInClient,
     auth: FirebaseAuth,
     context: Context,
+    navController: NavController,
     onSuccess: () -> Unit
 ) {
     try {
@@ -56,16 +62,60 @@ fun handleGoogleSignInResult(
             auth.signInWithCredential(firebaseCredential)
                 .addOnCompleteListener { task ->
                     if (task.isSuccessful) {
-                        Toast.makeText(context, "Google Sign-In Successful", Toast.LENGTH_SHORT).show()
-                        onSuccess()
+                        val scope = CoroutineScope(Dispatchers.Main)
+                        scope.launch {
+                            try {
+                                val user = auth.currentUser!!
+                                // Create or update user in Firestore
+                                FirebaseUserService.createOrUpdateUser(
+                                    email = user.email!!,
+                                    name = user.displayName ?: user.email!!.substringBefore("@"),
+                                    accountType = "google"
+                                )
+                                
+                                // Set logged in state
+                                val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                                sharedPreferences.edit()
+                                    .putBoolean("is_logged_in", true)
+                                    .apply()
+
+                                // Check if user exists and has interests
+                                val userExists = FirebaseUserService.userExists()
+                                val interests = FirebaseUserService.getUserInterests()
+                                
+                                if (!userExists || interests.isEmpty()) {
+                                    // New user or no interests, go to interest selection
+                                    navController.navigate("interest_selection") {
+                                        popUpTo("welcome") { inclusive = true }
+                                    }
+                                } else {
+                                    // Existing user with interests, go to home
+                                    navController.navigate("home") {
+                                        popUpTo("welcome") { inclusive = true }
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Toast.makeText(
+                                    context,
+                                    "Error: ${e.message}",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
                     } else {
-                        Toast.makeText(context, "Google Sign-In Failed: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            "Google Sign In Failed: ${task.exception?.message}",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 }
-        } else {
-            Toast.makeText(context, "Google ID token is null", Toast.LENGTH_SHORT).show()
         }
-    } catch (e: ApiException) {
-        Toast.makeText(context, "Google Sign-In Failed: ${e.message}", Toast.LENGTH_SHORT).show()
+    } catch (e: Exception) {
+        Toast.makeText(
+            context,
+            "Error: ${e.message}",
+            Toast.LENGTH_SHORT
+        ).show()
     }
 }

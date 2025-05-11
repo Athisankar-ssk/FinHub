@@ -27,98 +27,82 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.android.gms.auth.api.identity.Identity
 import android.content.Context
 import kotlinx.coroutines.launch
+import com.example.finhub.ui.theme.*
+import com.example.finhub.data.database.FirebaseUserService
+import com.example.finhub.data.database.FirebaseAdminService
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SignInScreen(navController: NavController) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
 
     val context = LocalContext.current
-    val auth = FirebaseAuth.getInstance()
     val scope = rememberCoroutineScope()
+    val auth = FirebaseAuth.getInstance()
+    val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
 
-    // One Tap Google Sign-In client
-    val oneTapClient = remember { Identity.getSignInClient(context) }
-
-    // Launcher to handle the result from Google Sign-In flow
-    val googleSignInLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartIntentSenderForResult()
-    ) { result ->
-        if (result.resultCode == android.app.Activity.RESULT_OK) {
-            handleGoogleSignInResult(
-                resultData = result.data,
-                oneTapClient = oneTapClient,
-                auth = auth,
-                context = context
-            ) {
-                // After Google sign-in, check for interests
-                scope.launch {
-                    val interests = com.example.finhub.data.database.FirebaseUserPreferencesService.getUserInterests()
-                    if (interests.isNullOrEmpty()) {
-                        navController.navigate("interest_selection") {
-                            popUpTo("signin") { inclusive = true }
-                        }
-                    } else {
-                        navController.navigate("home") {
-                            popUpTo("signin") { inclusive = true }
-                        }
+    // Check if already logged in
+    LaunchedEffect(Unit) {
+        if (auth.currentUser != null) {
+            // Check if it's an admin session
+            if (FirebaseAdminService.isAdminSession(context)) {
+                navController.navigate("admin") {
+                    popUpTo("signin") { inclusive = true }
+                }
+            } else {
+                // Update last login time for regular users
+                FirebaseUserService.updateLastLogin()
+                // Navigate based on interests
+                val interests = FirebaseUserService.getUserInterests()
+                if (interests.isEmpty()) {
+                    navController.navigate("interest_selection") {
+                        popUpTo("signin") { inclusive = true }
+                    }
+                } else {
+                    navController.navigate("home") {
+                        popUpTo("signin") { inclusive = true }
                     }
                 }
             }
         }
     }
 
-    // Check if the user is already logged in
-    val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-    val isLoggedIn = sharedPreferences.getBoolean("is_logged_in", false)
-
-    // If logged in, navigate to home
-    if (isLoggedIn || auth.currentUser != null) {
-        navController.navigate("home") {
-            popUpTo("signin") { inclusive = true }
-        }
-        return
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF121212))
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(BackgroundTheme)
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Welcome to FinHub",
-            style = TextStyle(
-                color = Color.White,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold
-            ),
-            modifier = Modifier.padding(bottom = 8.dp)
+            text = "FINHUB",
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 32.sp,
+            letterSpacing = 2.sp
         )
-
+        Spacer(modifier = Modifier.height(10.dp))
         Text(
-            text = "Sign in to continue",
-            style = TextStyle(
-                color = Color.LightGray,
-                fontSize = 16.sp
-            ),
-            modifier = Modifier.padding(bottom = 24.dp)
+            text = "Sign in to Continue",
+            color = OnboardingTextSecondary,
+            fontWeight = FontWeight.Medium,
+            fontSize = 16.sp
         )
-
+        Spacer(modifier = Modifier.height(20.dp))
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("Email", color = Color.White) },
+            label = { Text("Email", color = OnboardingTextSecondary) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 8.dp),
             textStyle = TextStyle(color = Color.White),
             colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color(0xFF2CDCBB),
-                unfocusedBorderColor = Color.Gray,
+                focusedBorderColor = Melrose,
+                unfocusedBorderColor = OnboardingTextSecondary,
                 cursorColor = Color.White
             )
         )
@@ -126,97 +110,132 @@ fun SignInScreen(navController: NavController) {
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Password", color = Color.White) },
+            label = { Text("Password", color = OnboardingTextSecondary) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp),
             textStyle = TextStyle(color = Color.White),
             colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color(0xFF2CDCBB),
-                unfocusedBorderColor = Color.Gray,
+                focusedBorderColor = Melrose,
+                unfocusedBorderColor = OnboardingTextSecondary,
                 cursorColor = Color.White
             )
         )
 
         Button(
             onClick = {
-                if (email.isNotEmpty() && password.isNotEmpty()) {
-                    auth.signInWithEmailAndPassword(email, password)
-                        .addOnCompleteListener { task ->
-                            if (task.isSuccessful) {
-                                // Save login state
-                                sharedPreferences.edit().putBoolean("is_logged_in", true).apply()
-                                Toast.makeText(context, "Sign In Successful", Toast.LENGTH_SHORT).show()
-                                // After email/password sign-in, check for interests
-                                scope.launch {
-                                    val interests = com.example.finhub.data.database.FirebaseUserPreferencesService.getUserInterests()
-                                    if (interests.isNullOrEmpty()) {
-                                        navController.navigate("interest_selection") {
-                                            popUpTo("signin") { inclusive = true }
+                if (validateInputs(email, password, context)) {
+                    isLoading = true
+                    error = null
+                    scope.launch {
+                        try {
+                            // First authenticate with Firebase
+                            auth.signInWithEmailAndPassword(email, password)
+                                .addOnCompleteListener { task ->
+                                    if (task.isSuccessful) {
+                                        scope.launch {
+                                            try {
+                                                // After successful Firebase auth, check if it's admin credentials
+                                                if (FirebaseAdminService.isAdminCredentials(email, password)) {
+                                                    // Set admin session
+                                                    FirebaseAdminService.setAdminSession(context)
+                                                    // Navigate to admin screen
+                                                    navController.navigate("admin") {
+                                                        popUpTo("signin") { inclusive = true }
+                                                    }
+                                                } else {
+                                                    // Regular user flow
+                                                    // Update last login time
+                                                    FirebaseUserService.updateLastLogin()
+
+                                                    // Set logged in state
+                                                    sharedPreferences.edit()
+                                                        .putBoolean("is_logged_in", true)
+                                                        .apply()
+
+                                                    // Check for interests
+                                                    val interests = FirebaseUserService.getUserInterests()
+                                                    if (interests.isEmpty()) {
+                                                        navController.navigate("interest_selection") {
+                                                            popUpTo("signin") { inclusive = true }
+                                                        }
+                                                    } else {
+                                                        navController.navigate("home") {
+                                                            popUpTo("signin") { inclusive = true }
+                                                        }
+                                                    }
+                                                }
+                                            } catch (e: Exception) {
+                                                error = "Error signing in: ${e.message}"
+                                                Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+                                            } finally {
+                                                isLoading = false
+                                            }
                                         }
                                     } else {
-                                        navController.navigate("home") {
-                                            popUpTo("signin") { inclusive = true }
-                                        }
+                                        error = "Sign in failed: ${task.exception?.message}"
+                                        Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+                                        isLoading = false
                                     }
                                 }
-                            } else {
-                                Toast.makeText(
-                                    context,
-                                    "Sign In Failed: ${task.exception?.message}",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
+                        } catch (e: Exception) {
+                            error = "Error signing in: ${e.message}"
+                            Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+                            isLoading = false
                         }
-                } else {
-                    Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
+                    }
                 }
             },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2CDCBB)),
-            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = AccentPurple,
+                contentColor = Color.White
+            ),
+            shape = RoundedCornerShape(4.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp)
         ) {
-            Text("Sign In", color = Color.Black, fontWeight = FontWeight.Bold)
+            Text("Continue", fontWeight = FontWeight.SemiBold)
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        TextButton(
-            onClick = { navController.navigate("signup") },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Don't have an account? Sign Up", color = Color(0xFF2CDCBB))
+        error?.let { errorMsg ->
+            Text(
+                text = errorMsg,
+                color = Color.Red,
+                fontSize = 14.sp,
+                modifier = Modifier.padding(top = 8.dp)
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = {
-                triggerGoogleSignIn(
-                    context = context,
-                    oneTapClient = oneTapClient,
-                    launcher = googleSignInLauncher
-                )
-            },
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
+        // Sign up link
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.google_logo),
-                contentDescription = "Google Logo",
-                modifier = Modifier.size(32.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                "Sign In with Google",
-                color = Color.Black,
-                fontWeight = FontWeight.Bold
-            )
+            Text("Don't have an account ?", color = OnboardingTextSecondary)
+            TextButton(onClick = { navController.navigate("signup") }) {
+                Text("Sign Up", color = Melrose, fontWeight = FontWeight.Bold)
+            }
         }
+        Spacer(modifier = Modifier.height(16.dp))
     }
+}
+
+// Add validation function
+private fun validateInputs(email: String, password: String, context: Context): Boolean {
+    if (email.isEmpty() || password.isEmpty()) {
+        Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
+        return false
+    }
+    if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+        Toast.makeText(context, "Please enter a valid email", Toast.LENGTH_SHORT).show()
+        return false
+    }
+    if (password.length < 6) {
+        Toast.makeText(context, "Password must be at least 6 characters", Toast.LENGTH_SHORT).show()
+        return false
+    }
+    return true
 }

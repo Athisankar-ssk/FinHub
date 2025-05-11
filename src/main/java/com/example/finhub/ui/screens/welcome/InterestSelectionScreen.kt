@@ -1,8 +1,15 @@
 package com.example.finhub.ui.screens.welcome
 
+import android.widget.Toast
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -10,112 +17,197 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.finhub.data.model.INTEREST_CATEGORIES
 import com.example.finhub.data.database.FirebaseUserPreferencesService
+import com.example.finhub.data.database.FirebaseUserService
+import com.example.finhub.data.model.INTEREST_CATEGORIES
+import com.example.finhub.ui.theme.*
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InterestSelectionScreen(navController: NavController, onComplete: () -> Unit) {
-    val scope = rememberCoroutineScope()
-    var selectedInterests by remember { mutableStateOf(listOf<String>()) }
+fun InterestSelectionScreen(navController: NavController) {
+    var selectedInterests by remember { mutableStateOf(setOf<String>()) }
     var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-
-    // Fetch user interests on first composition
-    LaunchedEffect(Unit) {
-        isLoading = true
-        try {
-            selectedInterests = FirebaseUserPreferencesService.getUserInterests()
-        } catch (e: Exception) {
-            errorMessage = "Failed to load interests."
-        }
-        isLoading = false
-    }
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF121212))
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(BackgroundTheme)
+            .padding(24.dp),
+        horizontalAlignment = Alignment.Start
     ) {
+        // Header Section
         Text(
-            text = "Select Your Interests",
+            text = "Choose Your\nInterests",
             color = Color.White,
-            fontSize = 24.sp,
-            modifier = Modifier.padding(bottom = 16.dp)
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Bold,
+            lineHeight = 40.sp
         )
 
-        if (isLoading) {
-            CircularProgressIndicator(color = Color.White)
-        } else {
-            errorMessage?.let {
-                Text(text = it, color = Color.Red, modifier = Modifier.padding(bottom = 8.dp))
-            }
-            Column(
-                modifier = Modifier.weight(1f, fill = false)
-            ) {
-                INTEREST_CATEGORIES.forEach { category ->
-                    val isSelected = selectedInterests.contains(category)
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 6.dp)
-                            .clickable {
-                                val newList = if (isSelected) {
-                                    selectedInterests - category
-                                } else {
-                                    selectedInterests + category
-                                }
-                                selectedInterests = newList
-                                // Update Firestore live
-                                scope.launch {
-                                    FirebaseUserPreferencesService.saveUserInterests(newList)
-                                }
-                            },
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isSelected) Color(0xFF2CDCBB) else Color(0xFF232323)
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = category,
-                                color = if (isSelected) Color.Black else Color.White,
-                                fontSize = 18.sp,
-                                modifier = Modifier.weight(1f)
-                            )
-                            if (isSelected) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = "Selected",
-                                    tint = Color.Black
-                                )
-                            }
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(
+            text = "Select at least 3 topics to personalize your feed",
+            color = OnboardingTextSecondary,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Medium
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Interests Grid
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.weight(1f)
+        ) {
+            items(INTEREST_CATEGORIES) { interest ->
+                val isSelected = selectedInterests.contains(interest)
+                InterestItem(
+                    interest = interest,
+                    isSelected = isSelected,
+                    onSelect = {
+                        selectedInterests = if (isSelected) {
+                            selectedInterests - interest
+                        } else {
+                            selectedInterests + interest
                         }
                     }
-                }
+                )
             }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Bottom Section with Counter and Continue Button
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+//            Text(
+//                text = "${selectedInterests.size} topics selected",
+//                color = OnboardingTextSecondary,
+//                fontSize = 16.sp,
+//                fontWeight = FontWeight.Medium
+//            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             Button(
-                onClick = { onComplete() },
-                enabled = selectedInterests.isNotEmpty(),
+                onClick = {
+                    isLoading = true
+                    scope.launch {
+                        try {
+                            // Save interests to user document
+                            FirebaseUserService.saveUserInterests(selectedInterests.toList())
+                            navController.navigate("home") {
+                                popUpTo("interest_selection") { inclusive = true }
+                            }
+                        } catch (e: Exception) {
+                            Toast.makeText(
+                                context,
+                                "Error saving interests: ${e.message}",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                        isLoading = false
+                    }
+                },
+                enabled = selectedInterests.size >= 3 && !isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 16.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2CDCBB))
+                    .height(56.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Follow,
+                    contentColor = Color.White,
+                    disabledContainerColor = Followed
+                ),
+                shape = RoundedCornerShape(4.dp)
             ) {
-                Text("Continue", color = Color.Black, fontWeight = FontWeight.Bold)
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = Color.White
+                    )
+                } else {
+                    Text(
+                        "Continue",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun InterestItem(
+    interest: String,
+    isSelected: Boolean,
+    onSelect: () -> Unit
+) {
+    val backgroundColor = animateColorAsState(
+        targetValue = if (isSelected) Follow else Color.Transparent,
+        animationSpec = tween(300)
+    )
+
+    val borderColor = animateColorAsState(
+        targetValue = if (isSelected) Follow else OnboardingTextSecondary,
+        animationSpec = tween(300)
+    )
+
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(backgroundColor.value)
+            .border(
+                width = 1.dp,
+                color = borderColor.value,
+                shape = RoundedCornerShape(4.dp)
+            )
+            .clickable(onClick = onSelect)
+            .height(72.dp)
+            .fillMaxWidth(),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = interest,
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                modifier = Modifier.weight(1f)
+            )
+
+            if (isSelected) {
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "Selected",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }
