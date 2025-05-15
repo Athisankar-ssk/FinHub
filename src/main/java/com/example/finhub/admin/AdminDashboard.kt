@@ -1,6 +1,7 @@
 package com.example.finhub.admin
 
 import android.widget.Toast
+import com.example.finhub.utils.NotificationManager
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -39,6 +40,9 @@ fun AdminDashboard() {
     var error by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     
+    // Add notification host to display notifications
+    NotificationManager.NotificationHost()
+    
     // Track if both listeners have received initial data
     var usersLoaded by remember { mutableStateOf(false) }
     var articlesLoaded by remember { mutableStateOf(false) }
@@ -59,8 +63,7 @@ fun AdminDashboard() {
             db.collection("users")
                 .addSnapshotListener { snapshot, e ->
                     if (e != null) {
-                        error = "Error listening for users: ${e.message}"
-                        Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                        NotificationManager.showError("Error listening for users: ${e.message}")
                         return@addSnapshotListener
                     }
                     totalUsers = snapshot?.size() ?: 0
@@ -71,8 +74,7 @@ fun AdminDashboard() {
             db.collection("articles")
                 .addSnapshotListener { snapshot, e ->
                     if (e != null) {
-                        error = "Error listening for articles: ${e.message}"
-                        Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                        NotificationManager.showError("Error listening for articles: ${e.message}")
                         return@addSnapshotListener
                     }
                     
@@ -90,7 +92,7 @@ fun AdminDashboard() {
             
         } catch (e: Exception) {
             error = "Error setting up listeners: ${e.message}"
-            Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+            NotificationManager.showError("Error setting up listeners: ${e.message}")
             isLoading = false
         }
     }

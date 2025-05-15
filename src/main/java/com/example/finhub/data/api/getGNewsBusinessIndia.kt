@@ -5,8 +5,16 @@ import retrofit2.http.Query
 
 interface GNewsApiService {
 
+    @GET("search")
+    suspend fun searchNews(
+        @Query("q") query: String,
+        @Query("country") country: String,
+        @Query("lang") lang: String,
+        @Query("token") token: String
+    ): GNewsResponse
+
     @GET("top-headlines")
-    suspend fun getBusinessNewsIndia(
+    suspend fun getTopHeadlines(
         @Query("country") country: String,
         @Query("lang") lang: String,
         @Query("topic") topic: String,

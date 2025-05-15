@@ -1,7 +1,6 @@
 package com.example.finhub.ui.screens.welcome
 
 import android.content.Context
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.IntentSenderRequest
@@ -9,6 +8,10 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,9 +37,14 @@ import com.google.firebase.ktx.Firebase
 import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.android.gms.auth.api.identity.Identity
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.launch
 import com.example.finhub.data.database.FirebaseUserService
 import com.example.finhub.ui.theme.Follow
+import com.example.finhub.ui.theme.Red
+import com.example.finhub.utils.NetworkUtils
+import com.example.finhub.utils.NotificationManager
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,6 +54,7 @@ fun SignUpScreen(navController: NavController) {
     var password by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    var passwordVisible by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -162,6 +171,17 @@ fun SignUpScreen(navController: NavController) {
                     .fillMaxWidth()
                     .padding(bottom = 16.dp),
                 textStyle = TextStyle(color = Color.White),
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                trailingIcon = {
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(
+                            imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                            contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                            tint = OnboardingTextSecondary
+                        )
+                    }
+                },
                 colors = TextFieldDefaults.outlinedTextFieldColors(
                     focusedBorderColor = Melrose,
                     unfocusedBorderColor = OnboardingTextSecondary,
@@ -172,8 +192,16 @@ fun SignUpScreen(navController: NavController) {
             // Sign Up Button
             Button(
                 onClick = {
+                    // First check for internet connectivity
+                    if (!NetworkUtils.isInternetAvailable(context)) {
+                        // Show no internet connection notification
+                        NotificationManager.showError("No internet connection available")
+                        return@Button
+                    }
+                    
                     if (validateInputs(name, email, password, context)) {
                         isLoading = true
+                        error = null
                         auth.createUserWithEmailAndPassword(email, password)
                             .addOnCompleteListener { task ->
                                 if (task.isSuccessful) {
@@ -185,34 +213,95 @@ fun SignUpScreen(navController: NavController) {
                                         ?.addOnCompleteListener { profileTask ->
                                             scope.launch {
                                                 try {
-                                                    // Store user data in Firestore
-                                                    FirebaseUserService.createOrUpdateUser(
-                                                        email = email,
-                                                        name = name,
-                                                        accountType = "email"
-                                                    )
+                                                    // Send email verification
+                                                    user?.sendEmailVerification()
+                                                        ?.addOnCompleteListener { emailVerificationTask ->
+                                                            if (emailVerificationTask.isSuccessful) {
+                                                                // Use coroutine scope to call suspend functions
+                                                                scope.launch {
+                                                                    try {
+                                                                        // Store user data in Firestore
+                                                                        FirebaseUserService.createOrUpdateUser(
+                                                                            email = email,
+                                                                            name = name,
+                                                                            accountType = "email",
+                                                                            emailVerified = false
+                                                                        )
 
-                                                    // Set logged in state
-                                                    sharedPreferences.edit()
-                                                        .putBoolean("is_logged_in", true)
-                                                        .apply()
-
-                                                    Toast.makeText(context, "Account Created Successfully", Toast.LENGTH_SHORT).show()
-                                                    
-                                                    // Navigate to interest selection for new users
-                                                    navController.navigate("interest_selection") {
-                                                        popUpTo("signup") { inclusive = true }
-                                                    }
+                                                                        // Show verification email sent notification
+                                                                        NotificationManager.showSuccess("Account created! Please check your email to verify your account.")
+                                                                        
+                                                                        // Sign out the user after account creation
+                                                                        // This forces them to sign in again after verifying email
+                                                                        auth.signOut()
+                                                                        
+                                                                        // Instead of navigating to interest selection, navigate back to sign-in
+                                                                        // with a message to check email for verification
+                                                                        navController.navigate("signin") {
+                                                                            popUpTo("signup") { inclusive = true }
+                                                                        }
+                                                                    } catch (e: Exception) {
+                                                                        NotificationManager.showError("Error creating user profile: ${e.message}")
+                                                                    }
+                                                                }
+                                                            } else {
+                                                                // Failed to send verification email
+                                                                val errorMessage = "Account created but failed to send verification email. You can request a new one later."
+                                                                NotificationManager.showInfo(errorMessage)
+                                                                
+                                                                // Still navigate to interest selection but wrap in coroutine scope
+                                                                scope.launch {
+                                                                    try {
+                                                                        // Store user data in Firestore
+                                                                        FirebaseUserService.createOrUpdateUser(
+                                                                            email = email,
+                                                                            name = name,
+                                                                            accountType = "email",
+                                                                            emailVerified = false
+                                                                        )
+                                                                        // Sign out the user after account creation
+                                                                        // This forces them to sign in again after verifying email
+                                                                        auth.signOut()
+                                                                        
+                                                                        // Instead of navigating to interest selection, navigate back to sign-in
+                                                                        // with a message to check email for verification
+                                                                        navController.navigate("signin") {
+                                                                            popUpTo("signup") { inclusive = true }
+                                                                        }
+                                                                    } catch (e: Exception) {
+                                                                        NotificationManager.showError("Error creating user profile: ${e.message}")
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
                                                 } catch (e: Exception) {
-                                                    error = "Error creating user: ${e.message}"
-                                                    Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+                                                    val errorMessage = "Something went wrong during sign up. Please try again."
+                                                    error = errorMessage
+                                                    NotificationManager.showError(errorMessage)
                                                 }
                                             }
                                             isLoading = false
                                         }
                                 } else {
-                                    error = "Sign up failed: ${task.exception?.message}"
-                                    Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+                                    // Get the Firebase error message
+                                    val firebaseError = task.exception?.message ?: ""
+                                    
+                                    // Provide a more user-friendly message based on the error
+                                    val errorMessage = when {
+                                        firebaseError.contains("email address is already in use") -> 
+                                            "This email is already registered. Please sign in instead."
+                                            
+                                        firebaseError.contains("password is invalid") -> 
+                                            "Please choose a stronger password."
+                                            
+                                        firebaseError.contains("network") -> 
+                                            "Network error. Please check your connection and try again."
+                                                
+                                        else -> "Sign up failed. Please try again."
+                                    }
+                                    
+                                    error = errorMessage
+                                    NotificationManager.showError(errorMessage)
                                     isLoading = false
                                 }
                             }
@@ -227,19 +316,29 @@ fun SignUpScreen(navController: NavController) {
                     .fillMaxWidth()
                     .height(50.dp)
             ) {
-                Text("Create Account", fontWeight = FontWeight.SemiBold)
+                if (isLoading) {
+                    // Show loading spinner
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = Color.White,
+                        strokeWidth = 5.dp
+                    )
+                } else {
+                    // Show regular text
+                    Text("Create Account", fontWeight = FontWeight.SemiBold)
+                }
             }
 
             error?.let { errorMsg ->
                 Text(
                     text = errorMsg,
-                    color = Color.Red,
+                    color = Red,
                     fontSize = 14.sp,
-                    modifier = Modifier.padding(top = 8.dp)
+                    modifier = Modifier.padding(top = 12.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Already have an account? Sign In link
             Row(
@@ -286,18 +385,55 @@ fun SignUpScreen(navController: NavController) {
 }
 
 // Helper Function
-fun validateInputs(name: String, email: String, password: String, context: android.content.Context): Boolean {
+private fun validateInputs(name: String, email: String, password: String, context: android.content.Context): Boolean {
     if (name.isEmpty() || email.isEmpty() || password.isEmpty()) {
-        Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
+        NotificationManager.showError("Please fill all fields")
         return false
     }
-    if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-        Toast.makeText(context, "Please enter a valid email", Toast.LENGTH_SHORT).show()
+    
+    // More comprehensive email validation
+    val emailRegex = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"
+    if (!email.matches(emailRegex.toRegex())) {
+        NotificationManager.showError("Please enter a valid email address")
         return false
     }
-    if (password.length < 6) {
-        Toast.makeText(context, "Password must be at least 6 characters", Toast.LENGTH_SHORT).show()
+    
+    // Strong password validation using regex
+    val passwordRegex = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!])(?=\\S+$).{8,}$"
+    
+    if (!password.matches(passwordRegex.toRegex())) {
+        // Provide specific feedback based on what's missing
+        when {
+            password.length < 8 -> {
+                NotificationManager.showError("Password must be at least 8 characters long")
+            }
+            !password.any { it.isDigit() } -> {
+                NotificationManager.showError("Password must contain at least one number")
+            }
+            !password.any { it.isLowerCase() } -> {
+                NotificationManager.showError("Password must contain at least one lowercase letter")
+            }
+            !password.any { it.isUpperCase() } -> {
+                NotificationManager.showError("Password must contain at least one uppercase letter")
+            }
+            !password.any { "@#$%^&+=!".contains(it) } -> {
+                NotificationManager.showError("Password must contain at least one special character (@, #, $, etc.)")
+            }
+            password.contains(" ") -> {
+                NotificationManager.showError("Password cannot contain spaces")
+            }
+            else -> {
+                NotificationManager.showError("Password must be at least 8 characters with uppercase, lowercase, number, and special character")
+            }
+        }
         return false
     }
+    
+    // Name validation - prevent very short names
+    if (name.length < 2) {
+        NotificationManager.showError("Name is too short")
+        return false
+    }
+    
     return true
 }

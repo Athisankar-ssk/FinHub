@@ -2,6 +2,7 @@ package com.example.finhub.ui.screens.welcome
 
 import android.content.Context
 import android.widget.Toast
+import com.example.finhub.utils.NotificationManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -39,6 +40,9 @@ fun WelcomeScreen(navController: NavController) {
     val context = LocalContext.current
     val auth = FirebaseAuth.getInstance()
     val scope = rememberCoroutineScope()
+    
+    // Add notification host to display notifications
+    NotificationManager.NotificationHost()
 
     val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
 
@@ -89,11 +93,7 @@ fun WelcomeScreen(navController: NavController) {
                             }
                         }
                     } catch (e: Exception) {
-                        Toast.makeText(
-                            context,
-                            "Error: ${e.message}",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        NotificationManager.showError("Error: ${e.message}")
                     }
                 }
             }
@@ -192,11 +192,17 @@ fun WelcomeScreen(navController: NavController) {
             // Google Sign-In Button
             Button(
                 onClick = {
-                    triggerGoogleSignIn(
-                        context = context,
-                        oneTapClient = oneTapClient,
-                        launcher = googleSignInLauncher
-                    )
+                    // Check for internet connectivity first
+                    if (com.example.finhub.utils.NetworkUtils.isInternetAvailable(context)) {
+                        triggerGoogleSignIn(
+                            context = context,
+                            oneTapClient = oneTapClient,
+                            launcher = googleSignInLauncher
+                        )
+                    } else {
+                        // Show no internet connection notification
+                        com.example.finhub.utils.NotificationManager.showError("No internet connection available")
+                    }
                 },
                 shape = RoundedCornerShape(4.dp),
                 border = ButtonDefaults.outlinedButtonBorder,
@@ -223,7 +229,15 @@ fun WelcomeScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(16.dp))
             // Sign up with other email
             Button(
-                onClick = { navController.navigate("signup") },
+                onClick = { 
+                    // Check for internet connectivity first
+                    if (com.example.finhub.utils.NetworkUtils.isInternetAvailable(context)) {
+                        navController.navigate("signup")
+                    } else {
+                        // Show no internet connection notification
+                        com.example.finhub.utils.NotificationManager.showError("No internet connection available")
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),

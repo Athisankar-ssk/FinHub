@@ -251,9 +251,19 @@ fun StatCard(
 @Composable
 fun UserCard(user: UserData) {
     val dateFormat = remember { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()) }
-    
+
+    val borderColor = animateColorAsState(
+        targetValue = OnboardingTextSecondary,
+        animationSpec = tween(300)
+    )
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth()
+
+            .border(
+                width = 1.dp,
+                color = borderColor.value,
+                shape = RoundedCornerShape(4.dp)
+            ),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         shape = RoundedCornerShape(4.dp)
     ) {

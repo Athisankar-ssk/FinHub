@@ -54,8 +54,11 @@ val MediumVilot = Color(0xFF927BED)
 
 val Followed = Color(0xFF2D2350)
 val Follow = Color(0xFF6C47FF)
-val OnboardCard = Color(0xDDD3D4e2)
+val OnboardCard = Color(0xFFD3D4E2)
 val SemiTransparentBlack = Color(0xCC000000)
 val BlueViolet = Color(0xFF3C1C87)
 
 val BottomCard = Color(0xFFC4C6DD)
+val Green = Color(0xFF56aa5b)
+val Yellow = Color(0xFFfbe819)
+val Red = Color(0xFFe05152)

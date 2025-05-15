@@ -16,7 +16,8 @@ object FirebaseUserService {
     suspend fun createOrUpdateUser(
         email: String,
         name: String,
-        accountType: String
+        accountType: String,
+        emailVerified: Boolean = false
     ) {
         val user = auth.currentUser ?: return
         
@@ -29,6 +30,7 @@ object FirebaseUserService {
             "email" to email,
             "name" to name,
             "accountType" to accountType,
+            "emailVerified" to emailVerified,
             "lastLoginAt" to Timestamp.now()
         )
 

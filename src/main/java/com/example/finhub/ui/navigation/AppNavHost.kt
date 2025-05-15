@@ -51,7 +51,10 @@ import com.example.finhub.ui.screens.today.TodayStoryScreen
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun AppNavHost() {
+fun AppNavHost(
+    shouldOpenAdminNews: Boolean = false,
+    adminTab: String = ""
+) {
     val navController = rememberNavController()
     val context = LocalContext.current
     val auth = FirebaseAuth.getInstance()
@@ -61,18 +64,7 @@ fun AppNavHost() {
     // State for start destination
     var startDestination by remember { mutableStateOf("loading") }
 
-//    val isOnboardingCompleted = remember {
-//        sharedPreferences.getBoolean("showOnboarding", false)
-//    }
-//
-//    val isUserLoggedIn = remember {
-//        sharedPreferences.getBoolean("is_logged_in", true) && auth.currentUser != null
-//    }
-//    startDestination = when {
-//        !isOnboardingCompleted -> "onboarding"
-//        !isUserLoggedIn -> "welcome"
-//        else -> "home"
-//    }
+    // Combined LaunchedEffect for navigation and initialization
     LaunchedEffect(Unit) {
         // Check if onboarding is completed
         val isOnboardingCompleted = sharedPreferences.getBoolean("showOnboarding", true)
@@ -92,20 +84,36 @@ fun AppNavHost() {
                 .apply()
         }
 
-        // Set start destination based on auth and session type
-        startDestination = if (!isOnboardingCompleted) {
-            "onboarding"
-        } else if (FirebaseAdminService.isAdminSession(context)) {
-            "admin"
-        } else if (currentUser == null) {
-            "welcome"
+        // Set start destination and handle admin news navigation
+        if (shouldOpenAdminNews) {
+            startDestination = "admin"
+            // Save the tab selection before navigation
+            if (adminTab.isNotEmpty()) {
+                sharedPreferences.edit()
+                    .putString("admin_selected_tab", adminTab)
+                    .apply()
+            }
         } else {
-            // Check for interests before going to home
-            val interests = com.example.finhub.data.database.FirebaseUserService.getUserInterests()
-            if (interests.isEmpty()) {
-                "interest_selection"
-            } else {
-                "home"
+            // Get the logged in state from SharedPreferences
+            val isLoggedIn = sharedPreferences.getBoolean("is_logged_in", false)
+            
+            startDestination = when {
+                !isOnboardingCompleted -> "onboarding"
+                FirebaseAdminService.isAdminSession(context) -> "admin"
+                currentUser == null -> "welcome"
+                !currentUser.isEmailVerified -> {
+                    // If email is not verified, make sure logged_in is false and go to signin
+                    sharedPreferences.edit()
+                        .putBoolean("is_logged_in", false)
+                        .apply()
+                    "signin"
+                }
+                !isLoggedIn -> "signin"  // If not logged in (even with verified email), go to signin
+                else -> {
+                    // Check for interests before going to home
+                    val interests = com.example.finhub.data.database.FirebaseUserService.getUserInterests()
+                    if (interests.isEmpty()) "interest_selection" else "home"
+                }
             }
         }
     }
@@ -164,7 +172,8 @@ fun AppNavHost() {
                             text = loadingFact,
                             fontSize = 18.sp,
                             color = OnboardingTextSecondary,
-                            textAlign = TextAlign.Center,
+                            textAlign = TextAlign.Justify,
+                            modifier = Modifier.padding(start = 32.dp, end = 32.dp)
                         )
                     }
                 }

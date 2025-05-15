@@ -1,6 +1,7 @@
 package com.example.finhub.admin
 
 import android.widget.Toast
+import com.example.finhub.utils.NotificationManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -166,6 +167,7 @@ fun AdminStory() {
     val geminiService = remember { GeminiService() }
 
     // State variables
+    var showDialog by remember { mutableStateOf(false) }
     var totalStories by remember { mutableStateOf(0) }
     var personInput by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
@@ -175,6 +177,7 @@ fun AdminStory() {
     var filteredPersons by remember { mutableStateOf<List<String>>(emptyList()) }
     var error by remember { mutableStateOf<String?>(null) }
     var isGeneratingTitle by remember { mutableStateOf(false) }
+
 
     // Listen for total stories count and persons list
     LaunchedEffect(Unit) {
@@ -241,10 +244,9 @@ fun AdminStory() {
 
             db.collection("stories").add(newStory).await()
             personInput = ""
-            Toast.makeText(context, "Story and title added successfully", Toast.LENGTH_SHORT).show()
+            NotificationManager.showSuccess("Story and title added successfully")
         } catch (e: Exception) {
-            error = "Error adding story: ${e.message}"
-            Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+            NotificationManager.showError("Error adding story: ${e.message}")
         } finally {
             isLoading = false
             isGeneratingTitle = false
@@ -308,14 +310,7 @@ fun AdminStory() {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Button(
-                    onClick = {
-                        if (personInput.isNotBlank()) {
-                            scope.launch { addStory(personInput) }
-                        } else {
-                            Toast.makeText(context, "Please enter a name", Toast.LENGTH_SHORT)
-                                .show()
-                        }
-                    },
+                    onClick = { showDialog = true },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Follow,
@@ -330,9 +325,25 @@ fun AdminStory() {
                             color = Color.White
                         )
                     } else {
-                        Text("Add Story")
+                        Text("Generate Story")
                     }
                 }
+
+                ConfirmationDialog(
+                    isVisible = showDialog,
+                    title = "Are you sure you want to generate Story ?",
+                    confirmButtonText = "Yes, Generate",
+                    cancelButtonText = "Cancel",
+                    onConfirm = {
+                        showDialog = false
+                        if (personInput.isNotBlank()) {
+                            scope.launch { addStory(personInput) }
+                        } else {
+                            NotificationManager.showError("Please enter a name")
+                        }
+                    },
+                    onCancel = { showDialog = false }
+                )
             }
         }
 

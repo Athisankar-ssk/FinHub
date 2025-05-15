@@ -18,31 +18,52 @@ import androidx.compose.material3.Icon
 import androidx.navigation.NavController
 
 import android.widget.Toast
+import com.example.finhub.utils.NotificationManager
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import com.example.finhub.data.database.FirebaseAdminService
 import com.example.finhub.ui.screens.home.DevBytesTheme
+import android.content.Context
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminScreen(navController: NavController) {
-    var selectedTab by remember { mutableStateOf(0) }
-    var showLogoutDialog by remember { mutableStateOf(false) }
-    val tabs = listOf("Dash Board", "Users", "Story", "News")
     val context = LocalContext.current
+    val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+    
+    // Add notification host to display notifications
+    NotificationManager.NotificationHost()
+    
+    // Initialize selected tab
+    var selectedTab by remember { 
+        val savedTab = sharedPreferences.getString("admin_selected_tab", null)
+        mutableStateOf(
+            when (savedTab) {
+                "news" -> 3  // Index of "News" tab
+                else -> 0    // Default to Dashboard
+            }
+        )
+    }
+
+    // Clear the saved tab preference after the initial composition
+    LaunchedEffect(Unit) {
+        sharedPreferences.edit().remove("admin_selected_tab").apply()
+    }
+    
+    var showDialog by remember { mutableStateOf(false) }
+    val tabs = listOf("Dash Board", "Users", "Story", "News")
 
     // Function to handle logout
     fun handleLogout() {
         try {
             FirebaseAdminService.handleAdminLogout(context)
-            navController.navigate("signin") {
+            navController.navigate("welcome") {
                 popUpTo("admin") { inclusive = true }
             }
-            Toast.makeText(context, "Logged out successfully", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
-            Toast.makeText(context, "Error logging out: ${e.message}", Toast.LENGTH_LONG).show()
+            NotificationManager.showError("Error logging out: ${e.message}")
         }
     }
 
@@ -62,7 +83,7 @@ fun AdminScreen(navController: NavController) {
                 )
             },
             actions = {
-                IconButton(onClick = { showLogoutDialog = true }) {
+                IconButton(onClick = { showDialog = true }) {
                     Icon(
                         imageVector = Icons.Default.Logout,
                         contentDescription = "Logout",
@@ -74,60 +95,16 @@ fun AdminScreen(navController: NavController) {
                 containerColor = Color.Transparent
             )
         )
-
-        if (showLogoutDialog) {
-            ModalBottomSheet(
-                onDismissRequest = { showLogoutDialog = false },
-                containerColor = BottomCard,
-                tonalElevation = 8.dp,
-                shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Are you sure you want to logout ?",
-                        color = CardPurple,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        modifier = Modifier.padding(bottom = 24.dp)
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        Button(
-                            onClick = {handleLogout()},
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color.Transparent,
-                                contentColor = CardPurple
-                            ),
-                            border = BorderStroke(1.dp, CardPurple),
-                            shape = RoundedCornerShape(4.dp),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Yes, logout", color = CardPurple)
-                        }
-                        Spacer(modifier = Modifier.width(16.dp))
-                        OutlinedButton(
-                            onClick = { showLogoutDialog = false },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Follow,
-                                contentColor = OnboardingTextSecondary
-                            ),
-                            border = BorderStroke(1.dp, Follow),
-                            shape = RoundedCornerShape(4.dp),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Cancel", color = DevBytesTheme.textPrimary)
-                        }
-                    }
-                }
-            }
-        }
+        ConfirmationDialog(
+            isVisible = showDialog,
+            title = "Are you sure you want to logout?",
+            confirmButtonText = "Yes, logout",
+            cancelButtonText = "Cancel",
+            onConfirm = {
+                handleLogout()
+                showDialog = false },
+            onCancel = { showDialog = false }
+        )
 
         // Tab Row
 //        TabRow(

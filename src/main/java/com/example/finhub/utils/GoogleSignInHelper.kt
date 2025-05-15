@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import androidx.navigation.NavController
 import com.example.finhub.data.database.FirebaseUserService
+import com.example.finhub.utils.NotificationManager
 
 // Create and return the Google Sign-In request
 fun getGoogleSignInRequest(): BeginSignInRequest {
@@ -41,7 +42,7 @@ fun triggerGoogleSignIn(
             launcher.launch(intentSenderRequest)
         }
         .addOnFailureListener { e ->
-            Toast.makeText(context, "Google Sign-In Error: ${e.message}", Toast.LENGTH_SHORT).show()
+            NotificationManager.showError("Google Sign-In Error: ${e.message}")
         }
 }
 
@@ -95,27 +96,15 @@ fun handleGoogleSignInResult(
                                     }
                                 }
                             } catch (e: Exception) {
-                                Toast.makeText(
-                                    context,
-                                    "Error: ${e.message}",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                NotificationManager.showError("Error : ${e.message}")
                             }
                         }
                     } else {
-                        Toast.makeText(
-                            context,
-                            "Google Sign In Failed: ${task.exception?.message}",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        NotificationManager.showError("Google Sign In Failed: ${task.exception?.message}")
                     }
                 }
         }
     } catch (e: Exception) {
-        Toast.makeText(
-            context,
-            "Error: ${e.message}",
-            Toast.LENGTH_SHORT
-        ).show()
+        NotificationManager.showError("Error: ${e.message}")
     }
 }

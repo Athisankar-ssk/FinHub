@@ -5,12 +5,16 @@ import android.util.Log
 import com.example.finhub.data.api.ApiClient
 import com.example.finhub.data.database.FirebaseService
 import com.example.finhub.data.model.NewsArticle
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.Collections
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import java.util.Calendar
 
 class NewsDataCollector(
     private val finnhubApiKey: String,
@@ -25,139 +29,264 @@ class NewsDataCollector(
     private val serpApiService = ApiClient.serpApi
     private val firebaseService = FirebaseService(context)
     private val processedUrls = Collections.synchronizedSet(HashSet<String>())
+    private var progressCallback: ((module: String, current: Int, total: Int, articleTitle: String) -> Unit)? = null
+    
     val currentDate = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault())
         .apply { timeZone = TimeZone.getTimeZone("UTC") }
         .format(Date())
 
-    fun collectAndStoreNews() {
-        runBlocking {
-//            try {
-//                // First fetch all news without processing
-//                val allNews = fetchGNewsBusinessIndia("daily finance","india") + fetchGNewsBusinessIndia("daily business", "india")
-//                Log.d("NewsDataCollector", "Fetched ${allNews.size} total articles")
-//
-//                val uniqueArticles = mutableListOf<NewsArticle>()
-//                // Filter out duplicates
-//                allNews.forEach { article ->
-//                    article.url?.let { url ->
-//                        if (url.isNotEmpty() && !processedUrls.contains(url)) {
-//                            processedUrls.add(url)
-//                            uniqueArticles.add(article)
-//                        } else {
-//                            Log.d("NewsDataCollector", "Filtered duplicate URL before processing: $url")
-//                        }
-//                    }
-//                }
-//
-//                Log.d("NewsDataCollector", "Processing ${uniqueArticles.size} unique articles")
-//
-//                // Process each unique article sequentially
-//                for (article in uniqueArticles) {
-//                    try {
-//                        Log.d("NewsDataCollector", "Attempting to store article: ${article.headline}")
-//                        val docId = firebaseService.storeArticle(article)
-//                        if (docId != null) {
-//                            Log.d("NewsDataCollector", "Successfully stored article: ${article.headline}, ID: $docId")
-//                        } else {
-//                            Log.e("NewsDataCollector", "Failed to store article: ${article.headline} (AI processing failed)")
-//                        }
-//                    } catch (e: Exception) {
-//                        Log.e("NewsDataCollector", "Error processing article ${article.headline}: ${e.message}")
-//                    }
-//                }
-//
-//            } catch (e: Exception) {
-//                Log.e("NewsDataCollector", "Error in collectAndStoreNews: ${e.message}")
-//                e.printStackTrace()
-//            }
-//            try {
-//                // First fetch all news without processing
-//                val allNews = fetchNewsApiBusinessNews("cryptocurrency", "india", "cryptocurrency", false) +
-//                        fetchNewsApiBusinessNews("indian mutual funds", "india", "mutual funds", false) +
-//                        fetchNewsApiBusinessNews("indian tax and budgeting", "india", "tax and budgeting", false) +
-//                        fetchNewsApiBusinessNews("indian banking and insurance", "india", "banking and insurance", false) +
-//                        fetchNewsApiBusinessNews("indian fintech", "india", "fintech", false)
-//
-//                Log.d("NewsDataCollector", "Fetched ${allNews.size} total articles")
-//
-//                val uniqueArticles = mutableListOf<NewsArticle>()
-//                // Filter out duplicates
-//                allNews.forEach { article ->
-//                    article.url?.let { url ->
-//                        if (url.isNotEmpty() && !processedUrls.contains(url)) {
-//                            processedUrls.add(url)
-//                            uniqueArticles.add(article)
-//                        } else {
-//                            Log.d("NewsDataCollector", "Filtered duplicate URL before processing: $url")
-//                        }
-//                    }
-//                }
-//
-//                Log.d("NewsDataCollector", "Processing ${uniqueArticles.size} unique articles")
-//
-//                // Process each unique article sequentially
-//                for (article in uniqueArticles) {
-//                    try {
-//                        Log.d("NewsDataCollector", "Attempting to store article: ${article.headline}")
-//                        val docId = firebaseService.storeArticle(article)
-//                        if (docId != null) {
-//                            Log.d("NewsDataCollector", "Successfully stored article: ${article.headline}, ID: $docId")
-//                        } else {
-//                            Log.e("NewsDataCollector", "Failed to store article: ${article.headline} (AI processing failed)")
-//                        }
-//                    } catch (e: Exception) {
-//                        Log.e("NewsDataCollector", "Error processing article ${article.headline}: ${e.message}")
-//                    }
-//                }
-//
-//            } catch (e: Exception) {
-//                Log.e("NewsDataCollector", "Error in collectAndStoreNews: ${e.message}")
-//                e.printStackTrace()
-//            }
+    fun setProgressCallback(callback: (module: String, current: Int, total: Int, articleTitle: String) -> Unit) {
+        progressCallback = callback
+    }
 
-            try {
-                // First fetch all news without processing
-                val allNews = fetchSerpNews("business", "business","india")
+    private suspend fun initializeProcessedUrls() = coroutineScope {
+        // Clear processedUrls
+        processedUrls.clear()
+        // Load processed URLs from Firestore
+        FirebaseFirestore.getInstance().collection("articles")
+            .get()
+            .addOnSuccessListener { documents ->
+                for (document in documents) {
+                    document.getString("url")?.let { url ->
+                        processedUrls.add(url)
+                    }
+                }
+                Log.d("NewsDataCollector", "Loaded ${processedUrls.size} URLs from Firestore")
+            }
+            .addOnFailureListener { e ->
+                Log.e("NewsDataCollector", "Error loading URLs from Firestore: ${e.message}")
+            }
+    }
 
-                Log.d("NewsDataCollector", "Fetched ${allNews.size} total articles")
+    suspend fun collectAndStoreNews() = coroutineScope {
+        initializeProcessedUrls();
+        Log.d("NewsDataCollector", "Loaded ${processedUrls.size} URLs from Firestore")
+        try {
+            progressCallback?.invoke("SERP Daily", 0, 1, "Starting SERP Daily Finance fetch...")
 
-                val uniqueArticles = mutableListOf<NewsArticle>()
-                // Filter out duplicates
-                allNews.forEach { article ->
+            val serpNewsFinance = fetchSerpNews("today indian finance", "daily finance", "india")
+            val serpNewsBusiness = fetchSerpNews("today indian business", "daily business", "india")
+
+            // Create a calendar instance for date manipulation
+            val calendar = Calendar.getInstance()
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val collectedFinanceArticles = mutableListOf<NewsArticle>()
+            val collectedBusinessArticles = mutableListOf<NewsArticle>()
+            
+            // Try for today and yesterday only
+            for (daysBack in 0..1) {
+                val currentDate = dateFormat.format(calendar.time)
+                Log.d("NewsDataCollector", "Checking articles for date: $currentDate")
+                
+                // Filter and collect finance articles
+                if (collectedFinanceArticles.size < 15) {
+                    val financeArticlesForDay = serpNewsFinance.filter { article ->
+                        article.datetime == currentDate
+                    }
+                    Log.d("NewsDataCollector", "Found ${financeArticlesForDay.size} finance articles for $currentDate")
+                    
+                    val remainingFinanceNeeded = 15 - collectedFinanceArticles.size
+                    collectedFinanceArticles.addAll(financeArticlesForDay.take(remainingFinanceNeeded))
+                }
+                
+                // Filter and collect business articles
+                if (collectedBusinessArticles.size < 15) {
+                    val businessArticlesForDay = serpNewsBusiness.filter { article ->
+                        article.datetime == currentDate
+                    }
+                    Log.d("NewsDataCollector", "Found ${businessArticlesForDay.size} business articles for $currentDate")
+                    
+                    val remainingBusinessNeeded = 15 - collectedBusinessArticles.size
+                    collectedBusinessArticles.addAll(businessArticlesForDay.take(remainingBusinessNeeded))
+                }
+                
+                // If both categories have 15 articles, we can break early
+                if (collectedFinanceArticles.size >= 15 && collectedBusinessArticles.size >= 15) {
+                    break
+                }
+                
+                // Move to previous day
+                calendar.add(Calendar.DAY_OF_YEAR, -1)
+            }
+
+            val totalArticles = collectedFinanceArticles + collectedBusinessArticles
+            Log.d("NewsDataCollector", "Total collected articles: ${totalArticles.size} (Finance: ${collectedFinanceArticles.size}, Business: ${collectedBusinessArticles.size})")
+
+            // Process all articles together
+            totalArticles.forEachIndexed { index, article ->
+                try {
+                    val category = if (article in collectedFinanceArticles) "Finance" else "Business"
+                    progressCallback?.invoke("SERP Daily", index + 1, totalArticles.size, "$category: ${article.headline}")
+
                     article.url?.let { url ->
                         if (url.isNotEmpty() && !processedUrls.contains(url)) {
                             processedUrls.add(url)
-                            uniqueArticles.add(article)
-                        } else {
-                            Log.d("NewsDataCollector", "Filtered duplicate URL before processing: $url")
+                            val docId = firebaseService.storeArticle(article)
+                            if (docId != null) {
+                                Log.d("NewsDataCollector", "Successfully stored $category article: ${article.headline}")
+                            } else {
+                                Log.e("NewsDataCollector", "Failed to store $category article: ${article.headline}")
+                            }
                         }
                     }
+                } catch (e: Exception) {
+                    Log.e("NewsDataCollector", "Error processing article ${article.headline}: ${e.message}")
                 }
-
-                Log.d("NewsDataCollector", "Processing ${uniqueArticles.size} unique articles")
-
-                // Process each unique article sequentially
-                for (article in uniqueArticles) {
-                    try {
-                        Log.d("NewsDataCollector", "Attempting to store article: ${article.headline}")
-                        val docId = firebaseService.storeArticle(article)
-                        if (docId != null) {
-                            Log.d("NewsDataCollector", "Successfully stored article: ${article.headline}, ID: $docId")
-                        } else {
-                            Log.e("NewsDataCollector", "Failed to store article: ${article.headline} (AI processing failed)")
-                        }
-                    } catch (e: Exception) {
-                        Log.e("NewsDataCollector", "Error processing article ${article.headline}: ${e.message}")
-                    }
-                }
-
-            } catch (e: Exception) {
-                Log.e("NewsDataCollector", "Error in collectAndStoreNews: ${e.message}")
-                e.printStackTrace()
             }
-
-
+        } catch (e: Exception) {
+            Log.e("NewsDataCollector", "Error in SERP Daily module: ${e.message}")
+            e.printStackTrace()
         }
+//
+//        try {
+//
+//            // Signal start of GNews module
+//            progressCallback?.invoke("GNews", 0, 1, "Starting GNews fetch...")
+//
+//            // MODULE 1: GNEWS
+//            val allNews = fetchGNewsBusinessIndia("daily finance","india") +
+//                         fetchGNewsBusinessIndia("daily business", "india")
+//            Log.d("NewsDataCollector", "Fetched ${allNews.size} total articles from GNews")
+//
+//            val uniqueArticles = mutableListOf<NewsArticle>()
+//            // Filter out duplicates
+//            allNews.forEach { article ->
+//                article.url?.let { url ->
+//                    if (url.isNotEmpty() && !processedUrls.contains(url)) {
+//                        processedUrls.add(url)
+//                        uniqueArticles.add(article)
+//                    } else {
+//                        Log.d("NewsDataCollector", "Filtered duplicate URL before processing: $url")
+//                    }
+//                }
+//            }
+//
+//            Log.d("NewsDataCollector", "Processing ${uniqueArticles.size} unique GNews articles")
+//
+//            // Process each unique article sequentially
+//            uniqueArticles.forEachIndexed { index, article ->
+//                try {
+//                    // Update progress for GNews module
+//                    progressCallback?.invoke("GNews", index + 1, uniqueArticles.size, article.headline)
+//
+//                    Log.d("NewsDataCollector", "Attempting to store article: ${article.headline}")
+//                    val docId = firebaseService.storeArticle(article)
+//                    if (docId != null) {
+//                        Log.d("NewsDataCollector", "Successfully stored article: ${article.headline}, ID: $docId")
+//                    } else {
+//                        Log.e("NewsDataCollector", "Failed to store article: ${article.headline} (AI processing failed)")
+//                    }
+//                } catch (e: Exception) {
+//                    Log.e("NewsDataCollector", "Error processing article ${article.headline}: ${e.message}")
+//                }
+//            }
+//
+//        } catch (e: Exception) {
+//            Log.e("NewsDataCollector", "Error in GNews module: ${e.message}")
+//            e.printStackTrace()
+//        }
+//
+//
+////        MODULE 2: NEWS API
+//
+//        progressCallback?.invoke("SERP", 0, 1, "Starting NEWS API fetch...")
+//
+//        try {
+//            // First fetch all news without processing
+//            val allNews = fetchNewsApiBusinessNews("cryptocurrency", "india", "cryptocurrency", false) +
+//                    fetchNewsApiBusinessNews("indian mutual funds", "india", "mutual funds", false) +
+//                    fetchNewsApiBusinessNews("indian tax and budgeting", "india", "tax and budgeting", false) +
+//                    fetchNewsApiBusinessNews("indian banking and insurance", "india", "banking and insurance", false) +
+//                    fetchNewsApiBusinessNews("indian fintech", "india", "fintech", false)
+//
+//            Log.d("NewsDataCollector", "Fetched ${allNews.size} total articles")
+//
+//            val uniqueArticles = mutableListOf<NewsArticle>()
+//            // Filter out duplicates
+//            allNews.forEach { article ->
+//                article.url?.let { url ->
+//                    if (url.isNotEmpty() && !processedUrls.contains(url)) {
+//                        processedUrls.add(url)
+//                        uniqueArticles.add(article)
+//                    } else {
+//                        Log.d("NewsDataCollector", "Filtered duplicate URL before processing: $url")
+//                    }
+//                }
+//            }
+//
+//            Log.d("NewsDataCollector", "Processing ${uniqueArticles.size} unique articles")
+//
+//            // Process each unique article sequentially
+//            uniqueArticles.forEachIndexed { index, article ->
+//                try {
+//                    // Update progress for SERP module
+//                    progressCallback?.invoke("SERP", index + 1, uniqueArticles.size, article.headline)
+//
+//                    Log.d("NewsDataCollector", "Attempting to store article: ${article.headline}")
+//                    val docId = firebaseService.storeArticle(article)
+//                    if (docId != null) {
+//                        Log.d("NewsDataCollector", "Successfully stored article: ${article.headline}, ID: $docId")
+//                    } else {
+//                        Log.e("NewsDataCollector", "Failed to store article: ${article.headline} (AI processing failed)")
+//                    }
+//                } catch (e: Exception) {
+//                    Log.e("NewsDataCollector", "Error processing article ${article.headline}: ${e.message}")
+//                }
+//            }
+//
+//        } catch (e: Exception) {
+//            Log.e("NewsDataCollector", "Error in collectAndStoreNews: ${e.message}")
+//            e.printStackTrace()
+//        }
+//
+//        // Reset progress for new module
+//        progressCallback?.invoke("NEWS", 0, 1, "Starting SERP API fetch...")
+//
+//        // MODULE 3: SERP API
+//        try {
+//            val serpNews = fetchSerpNews("business", "business", "india")
+//            Log.d("NewsDataCollector", "Fetched ${serpNews.size} total articles from SERP")
+//
+//            val uniqueSerpArticles = mutableListOf<NewsArticle>()
+//            // Filter out duplicates
+//            serpNews.forEach { article ->
+//                article.url?.let { url ->
+//                    if (url.isNotEmpty() && !processedUrls.contains(url)) {
+//                        processedUrls.add(url)
+//                        uniqueSerpArticles.add(article)
+//                    } else {
+//                        Log.d("NewsDataCollector", "Filtered duplicate URL before processing: $url")
+//                    }
+//                }
+//            }
+//
+//            Log.d("NewsDataCollector", "Processing ${uniqueSerpArticles.size} unique SERP articles")
+//
+//            // Process each unique article sequentially
+//            uniqueSerpArticles.forEachIndexed { index, article ->
+//                try {
+//                    // Update progress for SERP module
+//                    progressCallback?.invoke("SERP", index + 1, uniqueSerpArticles.size, article.headline)
+//
+//                    Log.d("NewsDataCollector", "Attempting to store article: ${article.headline}")
+//                    val docId = firebaseService.storeArticle(article)
+//                    if (docId != null) {
+//                        Log.d("NewsDataCollector", "Successfully stored article: ${article.headline}, ID: $docId")
+//                    } else {
+//                        Log.e("NewsDataCollector", "Failed to store article: ${article.headline} (AI processing failed)")
+//                    }
+//                } catch (e: Exception) {
+//                    Log.e("NewsDataCollector", "Error processing article ${article.headline}: ${e.message}")
+//                }
+//            }
+//        } catch (e: Exception) {
+//            Log.e("NewsDataCollector", "Error in SERP module: ${e.message}")
+//            e.printStackTrace()
+//            throw e
+//        }
+
+        // MODULE 4: SERP DAILY FINANCE
+
     }
 
     private suspend fun fetchFinnhubFinanceNews(): List<NewsArticle> {
@@ -216,9 +345,14 @@ class NewsDataCollector(
         }
     }
 
-    private suspend fun fetchGNewsBusinessIndia(cat: String, re: String): List<NewsArticle> {
+    private suspend fun fetchGNewsBusinessIndia(query: String, country: String): List<NewsArticle> {
         return try {
-            val response = gNewsApiService.getBusinessNewsIndia(country = re, lang = "en", topic = cat, token = GnewsApiKey )
+            val response = gNewsApiService.searchNews(
+                query = query,
+                country = country,
+                lang = "en",
+                token = GnewsApiKey
+            )
             Log.d("NewsDataCollector", "GNews Response: $response")
             response.articles.map { article ->
                 NewsArticle(
@@ -228,8 +362,8 @@ class NewsDataCollector(
                     datetime = formatToDateOnly(article.publishedAt),
                     summary = article.description ?: "",
                     url = article.url,
-                    category = cat,
-                    region = re,
+                    category = query,  // Using query as category
+                    region = country,
                     savedDate = currentDate
                 )
             }
@@ -309,3 +443,4 @@ class NewsDataCollector(
         }
     }
 }
+

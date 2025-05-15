@@ -3,6 +3,7 @@ package com.example.finhub.ui.screens.welcome
 import android.content.Context
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -38,6 +39,7 @@ import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.rememberPagerState
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.layout.ContentScale
 import com.example.finhub.data.database.FirebaseUserPreferencesService
 import com.example.finhub.ui.theme.*
 
@@ -70,22 +72,25 @@ fun OnboardingScreen(navController: NavController, context: Context) {
     val iconGradient = Brush.linearGradient(listOf(AccentPurple, ButtonGradientStart))
 
     // Onboarding pages data
-    data class OnboardingPage(val icon: ImageVector, val title: String, val desc: String)
+    data class OnboardingPage(val icon: ImageVector,val imageRes: Int, val title: String, val desc: String)
     val pages = listOf(
         OnboardingPage(
             icon = Icons.Filled.Newspaper,
+            imageRes = R.drawable.onboarding_image1,
             title = "Sharp Insights. Short Reads",
             desc = "Stay informed with concise and clear business news summaries. " +
                     "All the key insights, delivered in a format made for speed"
         ),
         OnboardingPage(
             icon = Icons.Filled.Palette,
+            imageRes = R.drawable.onboarding_image2,
             title = "Personalized Insights",
             desc = "Get news tailored to your interests, region, and market behavior. " +
                     "Your feed adapts to what matters most to you"
         ),
         OnboardingPage(
             icon = Icons.Filled.FormatQuote,
+            imageRes = R.drawable.onboarding_image3,
             title = "One Story, Every Day",
             desc = "Discover the journey of one inspiring business mind every day " +
                     "Be inspired by their path to success and the lessons they've learned"
@@ -99,156 +104,137 @@ fun OnboardingScreen(navController: NavController, context: Context) {
             .fillMaxSize()
             .background(SideBackground)
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
+        // Upper card (full screen)
+        Box(
+            modifier = Modifier
+                .fillMaxSize(),
+            contentAlignment = Alignment.Center
         ) {
-            // Top Card fills the space above the bottom card
-            Box(
+            // Image that fills the entire upper area
+            Image(
+                painter = painterResource(id = pages[pagerState.currentPage].imageRes),
+                contentDescription = "Onboarding Image",
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
-                    .background(SideBackground)
-                    .padding(12.dp)
+                    .fillMaxWidth(0.7f)   // 80% width
+                    .fillMaxHeight(0.7f)
+                .clip(RoundedCornerShape(16.dp))  // Add rounded corners
+                .border(  // Add border
+                    width = 2.dp,
+                    color = OnboardingTextSecondary,  // Semi-transparent white border
+                    shape = RoundedCornerShape(16.dp)
+                )
+                .padding(4.dp),
+                contentScale = ContentScale.FillBounds
+            )
+        }
+
+        // Bottom card overlays on top of the upper card
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+                .align(Alignment.BottomCenter)
+                .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+                .background(OnboardCard)
+                .padding(horizontal = 24.dp, vertical = 32.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(RoundedCornerShape(50))
-                            .background(iconGradient),
-                        contentAlignment = Alignment.Center
+                // Rest of your bottom card content remains the same
+                HorizontalPager(
+                    count = pages.size,
+                    state = pagerState,
+                    userScrollEnabled = true,
+                    modifier = Modifier.weight(1f, fill = false)
+                ) { page ->
+                    // Your existing pager content
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
-                        Icon(
-                            imageVector = pages[pagerState.currentPage].icon,
-                            contentDescription = "Onboarding Icon",
-                            tint = Color.White,
-                            modifier = Modifier.size(36.dp)
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(RoundedCornerShape(50))
+                                .background(iconGradient),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = pages[page].icon,
+                                contentDescription = "Onboarding Icon",
+                                tint = Color.White,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(20.dp))
+                        Text(
+                            text = pages[page].title,
+                            color = CardPurple,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = pages[page].desc,
+                            color = CardPurple,
+                            fontSize = 15.sp,
+                            textAlign = TextAlign.Center
                         )
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Page indicators
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    repeat(pages.size) { i ->
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(RoundedCornerShape(50))
+                                .background(if (i == pagerState.currentPage) AccentPurple else Color(0x332D1B54))
+                        )
+                        if (i < pages.size - 1) Spacer(modifier = Modifier.width(8.dp))
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(28.dp))
+
+                // Button
+                Button(
+                    onClick = {
+                        if (pagerState.currentPage < pages.size - 1) {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                            }
+                        } else {
+                            sharedPreferences.edit().putBoolean("showOnboarding", true).apply()
+                            navController.navigate("welcome") {
+                                popUpTo("onboarding") { inclusive = true }
+                            }
+                        }
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AccentPurple,
+                        contentColor = Color.White
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth(.5f)
+                        .height(52.dp)
+                ) {
                     Text(
-                        text = pages[pagerState.currentPage].title,
-                        color = Color.White,
-                        fontSize = 22.sp,
+                        text = if (pagerState.currentPage < pages.size - 1) "Next" else "Get Started",
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = pages[pagerState.currentPage].desc,
-                        color = Color(0xDDC4C6DD),
-                        fontSize = 14.sp,
-                        lineHeight = 20.sp,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-            // Bottom Card is flush with the bottom
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight()
-                    .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
-                    .background(OnboardCard)
-                    .padding(horizontal = 24.dp, vertical = 32.dp)
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    // Pager for icon and content only
-                    HorizontalPager(
-                        count = pages.size,
-                        state = pagerState,
-                        userScrollEnabled = true,
-                        modifier = Modifier.weight(1f, fill = false)
-                    ) { page ->
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(56.dp)
-                                    .clip(RoundedCornerShape(50))
-                                    .background(iconGradient),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = pages[page].icon,
-                                    contentDescription = "Onboarding Icon",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(28.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(20.dp))
-                            Text(
-                                text = pages[page].title,
-                                color = CardPurple,
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.ExtraBold
-                            )
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Text(
-                                text = pages[page].desc,
-                                color =CardPurple,
-                                fontSize = 15.sp,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(24.dp))
-                    // Page indicators (fixed position, update with pagerState.currentPage)
-                    Row(
-                        horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        repeat(pages.size) { i ->
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(RoundedCornerShape(50))
-                                    .background(if (i == pagerState.currentPage) AccentPurple else Color(0x332D1B54))
-                            )
-                            if (i < pages.size - 1) Spacer(modifier = Modifier.width(8.dp))
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(28.dp))
-                    // Next/Get Started Button (fixed position, updates with pagerState.currentPage)
-                    Button(
-                        onClick = {
-                            if (pagerState.currentPage < pages.size - 1) {
-                                coroutineScope.launch {
-                                    pagerState.animateScrollToPage(pagerState.currentPage + 1)
-                                }
-                            } else {
-                                sharedPreferences.edit().putBoolean("showOnboarding", true).apply()
-                                navController.navigate("welcome") {
-                                    popUpTo("onboarding") { inclusive = true }
-                                }
-                            }
-                        },
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = AccentPurple,
-                            contentColor = Color.White
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp)
-                    ) {
-                        Text(
-                            text = if (pagerState.currentPage < pages.size - 1) "Next" else "Get Started",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
                 }
             }
         }

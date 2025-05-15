@@ -94,6 +94,8 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
+import com.example.finhub.admin.ConfirmationDialog
+import com.example.finhub.utils.NotificationManager
 
 // DevBytes-inspired color palette using the provided purple theme
 object DevBytesTheme {
@@ -270,6 +272,9 @@ fun HomeScreen(navController: NavHostController) {
             .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
     }
 
+    // Add notification host to display notifications
+    NotificationManager.NotificationHost()
+    
     ModalNavigationDrawer(
         drawerState = drawerState,
         gesturesEnabled = true,
@@ -359,7 +364,8 @@ fun HomeScreen(navController: NavHostController) {
                             text = loadingFact,
                             fontSize = 18.sp,
                             color = OnboardingTextSecondary,
-                            textAlign = TextAlign.Center,
+                            textAlign = TextAlign.Justify,
+                            modifier = Modifier.padding(start = 32.dp, end = 32.dp)
                         )
                     }
                 }
@@ -472,11 +478,7 @@ fun HomeScreen(navController: NavHostController) {
                                     onClick = {
                                         try {
                                             if (article.headline.isBlank()) {
-                                                Toast.makeText(
-                                                    context,
-                                                    "Article headline is missing",
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
+                                                NotificationManager.showError("Article headline is missing")
                                                 return@NewsCard
                                             }
 
@@ -494,24 +496,16 @@ fun HomeScreen(navController: NavHostController) {
                                             }
                                         } catch (e: Exception) {
                                             Log.e("HomeScreen", "Navigation error: ${e.message}", e)
-                                            Toast.makeText(
-                                                context,
-                                                "Error opening article: ${e.message}",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
+                                            NotificationManager.showError("Error opening article: ${e.message}")
                                         }
                                     },
                                     onBookmarkClick = {
                                         bookmarkViewModel.toggleBookmark(article)
-                                        val message = if (!bookmarkViewModel.isArticleBookmarked(
-                                                article.url ?: ""
-                                            )
-                                        ) {
-                                            " Bookmarked \n \"${article.headline}\""
+                                        if (!bookmarkViewModel.isArticleBookmarked(article.url ?: "")) {
+                                            NotificationManager.showBookmarked("Bookmarked: ${article.headline}")
                                         } else {
-                                            "  Bookmark removed \n \"${article.headline}\""
+                                            NotificationManager.showBookmarkRemoved("Bookmark removed: ${article.headline}")
                                         }
-                                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                                     },
                                     isBookmarked = bookmarkViewModel.isArticleBookmarked(
                                         article.url ?: ""
@@ -569,6 +563,7 @@ fun SideMenu(navController: NavController, onClose: () -> Unit) {
     val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
 
     // State for showing the logout confirmation dialog
+    var showDialog by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
     var showContactDialog by remember { mutableStateOf(false) }
@@ -730,7 +725,7 @@ fun SideMenu(navController: NavController, onClose: () -> Unit) {
                 ) {
                     SideMenuItem(
                         title = "Saved Items",
-                        icon = Icons.Default.Bookmark,
+                        icon = Icons.Default.Bookmarks,
                         onClick = {
                             navController.navigate("bookmarks")
                             onClose()
@@ -780,7 +775,7 @@ fun SideMenu(navController: NavController, onClose: () -> Unit) {
 
                 // Logout Button
                 Button(
-                    onClick = { showLogoutDialog = true },
+                    onClick = { showDialog = true },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
@@ -810,69 +805,22 @@ fun SideMenu(navController: NavController, onClose: () -> Unit) {
     }
 
     // Logout Confirmation Bottom Sheet/Dialog
-    if (showLogoutDialog) {
-        ModalBottomSheet(
-            onDismissRequest = { showLogoutDialog = false },
-            containerColor = BottomCard,
-            tonalElevation = 8.dp,
-            shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Are you sure you want to logout ?",
-                    color = CardPurple,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    modifier = Modifier.padding(bottom = 24.dp)
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    Button(
-                        onClick = {
-                            // Perform logout
-                            auth.signOut()
-                            sharedPreferences.edit().putBoolean("is_logged_in", false).apply()
-                            navController.navigate("welcome") {
-                                popUpTo("home") { inclusive = true }
-                            }
-                            Toast.makeText(context, "Logged out", Toast.LENGTH_SHORT).show()
-                            showLogoutDialog = false
-                            onClose()
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Transparent,
-                            contentColor = CardPurple
-                        ),
-                        border = BorderStroke(1.dp, CardPurple),
-                        shape = RoundedCornerShape(4.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Yes, logout", color = CardPurple)
-                    }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    OutlinedButton(
-                        onClick = { showLogoutDialog = false },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Follow,
-                            contentColor = OnboardingTextSecondary
-                        ),
-                        border = BorderStroke(1.dp, Follow),
-                        shape = RoundedCornerShape(4.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Cancel", color = DevBytesTheme.textPrimary)
-                    }
-                }
+    ConfirmationDialog(
+        isVisible = showDialog,
+        title = "Are you sure you want to logout?",
+        confirmButtonText = "Yes, logout",
+        cancelButtonText = "Cancel",
+        onConfirm = {
+            auth.signOut()
+            sharedPreferences.edit().putBoolean("is_logged_in", false).apply()
+            navController.navigate("welcome") {
+                popUpTo("home") { inclusive = true }
             }
-        }
-    }
+            onClose()
+            showDialog = false },
+        onCancel = { showDialog = false }
+    )
+
 
     // About and Contact Us dialogs
     if (showAboutDialog) {

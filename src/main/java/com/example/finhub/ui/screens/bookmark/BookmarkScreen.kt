@@ -2,6 +2,7 @@ package com.example.finhub.ui.screens.bookmark
 
 import android.annotation.SuppressLint
 import android.widget.Toast
+import com.example.finhub.utils.NotificationManager
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -52,6 +53,9 @@ fun BookmarkScreen(navController: androidx.navigation.NavController) {
     )
     val bookmarks by viewModel.bookmarks.collectAsState()
 
+    // Add notification host to display notifications
+    NotificationManager.NotificationHost()
+    
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -128,11 +132,7 @@ fun BookmarkScreen(navController: androidx.navigation.NavController) {
                                 },
                                 onBookmarkClick = {
                                     viewModel.toggleBookmark(article)
-                                    Toast.makeText(
-                                        context,
-                                        " Bookmark removed \n \"${article.headline}\"",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
+                                    NotificationManager.showBookmarkRemoved("Bookmark removed: ${article.headline}")
                                 },
                                 isBookmarked = true,
                                 currentPosition = page + 1,

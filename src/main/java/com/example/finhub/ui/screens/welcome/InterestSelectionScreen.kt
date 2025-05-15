@@ -1,6 +1,8 @@
 package com.example.finhub.ui.screens.welcome
 
 import android.widget.Toast
+import com.example.finhub.utils.NotificationManager
+import com.example.finhub.utils.NetworkUtils
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -38,6 +40,9 @@ fun InterestSelectionScreen(navController: NavController) {
     var isLoading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    
+    // Add notification host to display notifications
+    NotificationManager.NotificationHost()
 
     Column(
         modifier = Modifier
@@ -107,6 +112,12 @@ fun InterestSelectionScreen(navController: NavController) {
 
             Button(
                 onClick = {
+                    // Check internet connection first
+                    if (!NetworkUtils.isInternetAvailable(context)) {
+                        NotificationManager.showError("No internet connection. Please check your connection and try again.")
+                        return@Button
+                    }
+                    
                     isLoading = true
                     scope.launch {
                         try {
@@ -116,11 +127,7 @@ fun InterestSelectionScreen(navController: NavController) {
                                 popUpTo("interest_selection") { inclusive = true }
                             }
                         } catch (e: Exception) {
-                            Toast.makeText(
-                                context,
-                                "Error saving interests: ${e.message}",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            NotificationManager.showError("Error saving interests: ${e.message}")
                         }
                         isLoading = false
                     }
