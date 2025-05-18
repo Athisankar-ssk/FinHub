@@ -112,7 +112,7 @@ fun ArticleDetailScreen(article: NewsArticle) {
 
                     Text(
                         text = formattedTime,
-                        color = DevBytesTheme.textPrimary,
+                        color = Color.White,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -126,7 +126,7 @@ fun ArticleDetailScreen(article: NewsArticle) {
                 ) {
                     Text(
                         text = article.source ?: "Unknown source",
-                        color = DevBytesTheme.textPrimary,
+                        color = Color.White,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -136,11 +136,10 @@ fun ArticleDetailScreen(article: NewsArticle) {
             // Headline
             Text(
                 text = article.headline,
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    fontSize = 26.sp
-                ),
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp,
+                lineHeight = 26.sp,
+                color = Color.White,
                 modifier = Modifier
                     .padding(16.dp)
             )
@@ -148,34 +147,31 @@ fun ArticleDetailScreen(article: NewsArticle) {
             // Full content
             Text(
                 text = article.content ?: "No content available",
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    color = Color(0xFFCCCCCC),
-                    fontSize = 18.sp,
-                    lineHeight = 28.sp
-                ),
+                fontSize = 16.sp,
+                lineHeight = 24.sp,
+                color = Color.LightGray,
                 modifier = Modifier
                     .padding(horizontal = 16.dp)
-                    .padding(bottom = 24.dp)
+                    .padding(bottom = 16.dp)
             )
 
             val context = LocalContext.current
             if (!article.url.isNullOrEmpty()) {
                 Text(
                     text ="Source : ${article.source}",
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        color = OnboardingTextSecondary,
-                        fontSize = 18.sp,
-                        lineHeight = 28.sp
-                    ),
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Medium,
+                    lineHeight = 28.sp,
+                    color = OnboardingTextSecondary,
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
-                        .padding(bottom = 8.dp)
+                        .padding(bottom = 6.dp)
                 )
 
                 Text(
                     text = "Read on Publisher's Site ↗",
                     color = MediumVilot,
-                    fontSize = 18.sp,
+                    fontSize = 17.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier
                         .padding(horizontal = 16.dp)

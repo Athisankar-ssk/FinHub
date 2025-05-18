@@ -55,7 +55,7 @@ fun InterestSelectionScreen(navController: NavController) {
         Text(
             text = "Choose Your\nInterests",
             color = Color.White,
-            fontSize = 32.sp,
+            fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             lineHeight = 40.sp
         )
@@ -152,6 +152,7 @@ fun InterestSelectionScreen(navController: NavController) {
                     Text(
                         "Continue",
                         fontSize = 18.sp,
+                        fontFamily = FinHubFont,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -200,7 +201,7 @@ fun InterestItem(
             Text(
                 text = interest,
                 color = Color.White,
-                fontSize = 16.sp,
+                fontSize = 15.sp,
                 fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center,
                 maxLines = 2,

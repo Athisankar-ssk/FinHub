@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<font-family xmlns:app="http://schemas.android.com/apk/res-auto">
+    <font
+        app:font="@font/finhub_bold"
+        app:fontWeight="400"
+        app:fontStyle="normal" />
+    <font
+        app:font="@font/finhub_medium"
+        app:fontWeight="500"
+        app:fontStyle="normal" />
+    <font
+        app:font="@font/finhub_regular"
+        app:fontWeight="700"
+        app:fontStyle="normal" />
+    <font
+        app:font="@font/finhub_semibold"
+        app:fontWeight="600"
+        app:fontStyle="normal" />
+    <font
+        app:font="@font/finhub_extrabold"
+        app:fontWeight="800"
+        app:fontStyle="normal" />
+</font-family>

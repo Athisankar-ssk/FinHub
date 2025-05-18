@@ -146,16 +146,7 @@ fun TopNavBar(
                 .fillMaxWidth()
                 .padding(end = 48.dp),
             divider = {},
-            indicator = { tabPositions ->
-                Box(
-                    Modifier
-                        .tabIndicatorOffset(
-                            tabPositions[tabs.indexOf(selectedTab).coerceAtLeast(0)]
-                        )
-                        .height(3.dp)
-                        .background(MediumVilot)
-                )
-            }
+            indicator = {}
 
         ) {
             tabs.forEachIndexed { index, tab ->
@@ -165,9 +156,23 @@ fun TopNavBar(
                     text = {
                         Text(
                             text = tab,
-                            color = if (selectedTab == tab) DevBytesTheme.textPrimary else DevBytesTheme.textSecondary,
+                            color = if (selectedTab == tab) Color.White else Color.LightGray,
+                            fontFamily = FinHubFont,
                             fontWeight = if (selectedTab == tab) FontWeight.Bold else FontWeight.Normal,
-                            modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp),
+                            modifier = Modifier
+                                .padding(0.dp)
+                                .then(
+                                    if (selectedTab == tab) {
+                                        Modifier
+                                            .border(
+                                                width = 1.dp,
+                                                color = MediumVilot,
+                                                shape = RoundedCornerShape(4.dp)
+                                            )
+                                            .padding(vertical = 6.dp, horizontal = 10.dp)                                    } else {
+                                        Modifier
+                                    }
+                                ),
                             maxLines = 1
                         )
                     }
@@ -293,14 +298,14 @@ fun HomeScreen(navController: NavHostController) {
         Scaffold(
             topBar = {
 
-                Column {
+                Column() {
                     TopAppBar(
                         title = {
                             Text(
                                 "FinHub",
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 28.sp,
-                                color = DevBytesTheme.textPrimary
+                                fontSize = 26.sp,
+                                color = Color.White
                             )
                         },
                         navigationIcon = {
@@ -308,8 +313,8 @@ fun HomeScreen(navController: NavHostController) {
                                 Icon(
                                     Icons.Filled.Menu,
                                     contentDescription = "Menu",
-                                    tint = OnboardingTextSecondary,
-                                    modifier = Modifier.size(28.dp)
+                                    tint = Color.White,
+                                    modifier = Modifier.size(32.dp)
                                 )
                             }
                         },
@@ -357,14 +362,14 @@ fun HomeScreen(navController: NavHostController) {
                         LottieAnimation(
                             composition = composition,
                             progress = { progress },
-                            modifier = Modifier.size(100.dp)
+                            modifier = Modifier.size(150.dp)
                         )
                         val loadingFact by remember { mutableStateOf(RandomFact()) }
                         Text(
                             text = loadingFact,
-                            fontSize = 18.sp,
+                            fontSize = 16.sp,
                             color = OnboardingTextSecondary,
-                            textAlign = TextAlign.Justify,
+                            textAlign = TextAlign.Center,
                             modifier = Modifier.padding(start = 32.dp, end = 32.dp)
                         )
                     }
@@ -451,7 +456,7 @@ fun HomeScreen(navController: NavHostController) {
                                     "My Feed" -> "No general news available"
                                     else -> "No news available for $selectedTab"
                                 },
-                                color = DevBytesTheme.textSecondary,
+                                color = Color.LightGray,
                                 fontSize = 16.sp
                             )
                         }
@@ -610,8 +615,8 @@ fun SideMenu(navController: NavController, onClose: () -> Unit) {
                 ) {
                     Text(
                         text = "FinHub",
-                        color = DevBytesTheme.textPrimary,
-                        fontSize = 28.sp,
+                        color = Color.White,
+                        fontSize = 26.sp,
                         fontWeight = FontWeight.Bold
                     )
                     IconButton(onClick = onClose) {
@@ -660,7 +665,7 @@ fun SideMenu(navController: NavController, onClose: () -> Unit) {
                         Column {
                             Text(
                                 text = currentUser.displayName ?: "User",
-                                color = DevBytesTheme.textPrimary,
+                                color = Color.White,
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -685,7 +690,7 @@ fun SideMenu(navController: NavController, onClose: () -> Unit) {
                 Text(
                     text = "PERSONAL",
                     color = OnboardingTextSecondary,
-                    fontSize = 18.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(start = 2.dp, bottom = 16.dp)
                 )
@@ -757,7 +762,7 @@ fun SideMenu(navController: NavController, onClose: () -> Unit) {
                 Text(
                     text = "APP INFO",
                     color = OnboardingTextSecondary,
-                    fontSize = 18.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(start = 2.dp, top = 16.dp )
                 )
@@ -856,9 +861,9 @@ fun SideMenu(navController: NavController, onClose: () -> Unit) {
                     }
                     Text(
                         text = "About FinHub",
-                        color = DevBytesTheme.textPrimary,
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
                     )
                 }
 
@@ -897,12 +902,9 @@ fun SideMenu(navController: NavController, onClose: () -> Unit) {
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = sentence,
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontSize = 18.sp,
-                                    lineHeight = 22.sp
-                                ),
-                                color = OnboardingTextSecondary,
-                                fontWeight = FontWeight.Medium
+                                fontSize = 16.sp,
+                                lineHeight = 24.sp,
+                                color = Color.LightGray
                             )
                         }
                     }
@@ -946,30 +948,30 @@ fun SideMenu(navController: NavController, onClose: () -> Unit) {
                     }
                     Text(
                         text = "Contact Us",
-                        color = DevBytesTheme.textPrimary,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
                     )
 
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // DevBytes Logo as Text
                 Text(
                     text = "FinHub",
-                    color = DevBytesTheme.textPrimary,
-                    fontSize = 32.sp,
+                    color = Color.White,
+                    fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                 )
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // Head Office Section
                 Text(
                     text = "Head Office",
-                    color = DevBytesTheme.textPrimary,
-                    fontSize = 24.sp,
+                    color = Color.White,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
 
@@ -977,15 +979,15 @@ fun SideMenu(navController: NavController, onClose: () -> Unit) {
 
                 Text(
                     text = "FinHub Software Solutions",
-                    color = DevBytesTheme.textPrimary,
-                    fontSize = 18.sp,
+                    color = Color.White,
+                    fontSize = 17.sp,
                     fontWeight = FontWeight.Medium
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "95, Avinash Road, Peelamedu\nCoimbatore, Tamil Nadu 641001",
+                    text = "95, Avinash Road, Peelamedu,\nCoimbatore, Tamil Nadu - 641001.",
                     color = OnboardingTextSecondary,
                     fontSize = 16.sp,
                     lineHeight = 24.sp
@@ -996,8 +998,8 @@ fun SideMenu(navController: NavController, onClose: () -> Unit) {
                 // Email Section
                 Text(
                     text = "Email",
-                    color = DevBytesTheme.textPrimary,
-                    fontSize = 24.sp,
+                    color = Color.White,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
 
@@ -1006,7 +1008,7 @@ fun SideMenu(navController: NavController, onClose: () -> Unit) {
                 Text(
                     text = "24mx104@psgtech.ac.in ↗",
                     color = MediumVilot,
-                    fontSize = 18.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.clickable {
                         val intent = Intent(Intent.ACTION_SENDTO).apply {
@@ -1019,7 +1021,7 @@ fun SideMenu(navController: NavController, onClose: () -> Unit) {
                 Text(
                     text = "24mx217@psgtech.ac.in ↗",
                     color = MediumVilot,
-                    fontSize = 18.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.clickable {
                         val intent = Intent(Intent.ACTION_SENDTO).apply {
@@ -1067,7 +1069,7 @@ fun SideMenuItem(
         Icon(
             imageVector = Icons.Default.ChevronRight,
             contentDescription = "Navigate",
-            tint = DevBytesTheme.textSecondary
+            tint = Color.LightGray
         )
     }
 }
@@ -1132,7 +1134,7 @@ fun NewsCard(
                                 .padding(16.dp, 5.dp)
                                 .clip(RoundedCornerShape(4.dp))
                                 .background(BlueViolet.copy(alpha = 0.8f))
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                .padding(horizontal = 12.dp, vertical = 4.dp)
                                 .align(Alignment.BottomStart)
                         ) {
                             Text(
@@ -1222,16 +1224,15 @@ fun NewsCard(
                             .fillMaxWidth()
                             .padding(16.dp)
                     ) {
+
                         Text(
                             text = article.headline,
-                            style = MaterialTheme.typography.headlineSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 26.sp,
-                                lineHeight = 32.sp
-                            ),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
+                            lineHeight = 26.sp,
                             maxLines = 5,
                             overflow = TextOverflow.Ellipsis,
-                            color = DevBytesTheme.textPrimary
+                            color = Color.White
                         )
 
                         val sentences = article.summary.split(Regex("(?<=[.!?])\\s+(?=[A-Z])"))
@@ -1256,11 +1257,9 @@ fun NewsCard(
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = sentence,
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontSize = 18.sp,
-                                        lineHeight = 22.sp
-                                    ),
-                                    color = OnboardingTextSecondary
+                                    fontSize = 16.sp,
+                                    lineHeight = 24.sp,
+                                    color = Color.LightGray
                                 )
                             }
                         }
@@ -1269,7 +1268,7 @@ fun NewsCard(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(200.dp)
+                            .height(180.dp)
                     ) {
                         AsyncImage(
                             model = article.image,
@@ -1297,13 +1296,13 @@ fun NewsCard(
                                 .padding(16.dp, 5.dp)
                                 .clip(RoundedCornerShape(4.dp))
                                 .background(BlueViolet.copy(alpha = 0.8f))
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                .padding(horizontal = 12.dp, vertical = 4.dp)
                                 .align(Alignment.BottomStart)
                         ) {
                             Text(
                                 text = article.source,
-                                color = DevBytesTheme.textPrimary,
-                                fontSize = 15.sp,
+                                color = Color.White,
+                                fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -1391,11 +1390,9 @@ fun NewsCard(
                     ) {
                         Text(
                             text = article.headline,
-                            style = MaterialTheme.typography.headlineSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 24.sp,
-                                lineHeight = 28.sp
-                            ),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
+                            lineHeight = 26.sp,
                             maxLines = 5,
                             overflow = TextOverflow.Ellipsis,
                             color = DevBytesTheme.textPrimary
@@ -1403,11 +1400,9 @@ fun NewsCard(
 
                         Text(
                             text = article.summary,
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontSize = 18.sp,
-                                lineHeight = 24.sp
-                            ),
-                            color = OnboardingTextSecondary
+                            fontSize = 16.sp,
+                            lineHeight = 24.sp,
+                            color = Color.LightGray
                         )
                     }
                 }
@@ -1455,7 +1450,6 @@ fun NewsCard(
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium,
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.clickable { onClick() }
@@ -1511,7 +1505,7 @@ fun NewsCard(
                             Text(
                                 text = formattedTime,
                                 color = OnboardingTextSecondary,
-                                fontSize = 14.sp,
+                                fontSize = 13.sp,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -1550,7 +1544,7 @@ fun BottomTextLink(text: String, onClick: () -> Unit) {
         Icon(
             imageVector = Icons.Default.ArrowOutward,
             contentDescription = null,
-            tint = DevBytesTheme.textSecondary,
+            tint = Gray,
             modifier = Modifier
                 .size(16.dp)
         )

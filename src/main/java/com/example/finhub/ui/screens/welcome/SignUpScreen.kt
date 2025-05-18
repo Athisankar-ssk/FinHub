@@ -12,6 +12,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -45,6 +48,7 @@ import com.example.finhub.utils.NotificationManager
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import com.example.finhub.ui.theme.FinHubFont
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -134,7 +138,14 @@ fun SignUpScreen(navController: NavController) {
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("Name", color = OnboardingTextSecondary) },
+                label = { Text("Name", color = OnboardingTextSecondary,  fontFamily = FinHubFont) },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "Name",
+                        tint = OnboardingTextSecondary
+                    )
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 8.dp),
@@ -150,7 +161,14 @@ fun SignUpScreen(navController: NavController) {
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
-                label = { Text("Email", color = OnboardingTextSecondary) },
+                label = { Text("Email", color = OnboardingTextSecondary,  fontFamily = FinHubFont) },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Email,
+                        contentDescription = "Email",
+                        tint = OnboardingTextSecondary
+                    )
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 8.dp),
@@ -166,7 +184,14 @@ fun SignUpScreen(navController: NavController) {
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Password", color = OnboardingTextSecondary) },
+                label = { Text("Password", color = OnboardingTextSecondary,  fontFamily = FinHubFont) },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = "Password",
+                        tint = OnboardingTextSecondary
+                    )
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 16.dp),
@@ -174,10 +199,12 @@ fun SignUpScreen(navController: NavController) {
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 trailingIcon = {
+                    val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                    val contentDescription = if (passwordVisible) "Hide password" else "Show password"
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(
-                            imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                            contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                            imageVector = image,
+                            contentDescription = contentDescription,
                             tint = OnboardingTextSecondary
                         )
                     }
@@ -325,7 +352,7 @@ fun SignUpScreen(navController: NavController) {
                     )
                 } else {
                     // Show regular text
-                    Text("Create Account", fontWeight = FontWeight.SemiBold)
+                    Text("Create Account", fontFamily = FinHubFont, fontWeight = FontWeight.SemiBold)
                 }
             }
 
@@ -348,7 +375,7 @@ fun SignUpScreen(navController: NavController) {
             ) {
                 Text("Already have an account ?", color = OnboardingTextSecondary)
                 TextButton(onClick = { navController.navigate("signin") }) {
-                    Text("Sign In", color = Melrose, fontWeight = FontWeight.Bold)
+                    Text("Sign In", color = Melrose, fontFamily = FinHubFont, fontWeight = FontWeight.Bold)
                 }
             }
 

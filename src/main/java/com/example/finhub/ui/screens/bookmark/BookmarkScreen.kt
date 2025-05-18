@@ -40,6 +40,7 @@ import com.example.finhub.ui.screens.home.SideMenu
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import androidx.compose.ui.graphics.Color
+import com.example.finhub.ui.theme.Gray
 import com.example.finhub.ui.theme.HomeBackgroundTheme
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -102,7 +103,7 @@ fun BookmarkScreen(navController: androidx.navigation.NavController) {
                     ) {
                         Text(
                             text = "No saved items yet",
-                            color = DevBytesTheme.textSecondary,
+                            color = Gray,
                             style = MaterialTheme.typography.bodyLarge
                         )
                     }

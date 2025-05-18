@@ -69,7 +69,8 @@ object NotificationManager {
      * Show a bookmark notification
      */
     fun showBookmarked(message: String, durationMillis: Long = 2000) {
-        notificationMessage.value = message
+        val trimmedMessage = if (message.length > 60) "${message.take(56)}..." else message
+        notificationMessage.value = trimmedMessage
         notificationIcon.value = Icons.Filled.BookmarkAdded
         notificationBgColor.value = Color(0xFFF3E5F5)
         notificationTextColor.value = Color(0xFF6A1B9A)
@@ -79,7 +80,8 @@ object NotificationManager {
     }
 
     fun showBookmarkRemoved(message: String, durationMillis: Long = 2000) {
-        notificationMessage.value = message
+        val trimmedMessage = if (message.length > 60) "${message.take(56)}..." else message
+        notificationMessage.value = trimmedMessage
         notificationIcon.value = Icons.Filled.BookmarkRemove
         notificationBgColor.value = Color(0xFFF3E5F5)
         notificationTextColor.value = Color(0xFF6A1B9A)

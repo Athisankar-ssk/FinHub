@@ -48,8 +48,8 @@ fun ConfirmationDialog(
                 Text(
                     text = title,
                     color = titleColor,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
                     modifier = Modifier.padding(bottom = 24.dp)
                 )
                 Row(
@@ -66,7 +66,7 @@ fun ConfirmationDialog(
                         shape = RoundedCornerShape(4.dp),
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text(confirmButtonText, color = confirmButtonTextColor)
+                        Text(confirmButtonText, color = confirmButtonTextColor, fontFamily = FinHubFont)
                     }
                     Spacer(modifier = Modifier.width(16.dp))
                     OutlinedButton(
@@ -79,7 +79,7 @@ fun ConfirmationDialog(
                         shape = RoundedCornerShape(4.dp),
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text(cancelButtonText, color = cancelButtonTextColor)
+                        Text(cancelButtonText, color = cancelButtonTextColor, fontFamily = FinHubFont)
                     }
                 }
             }

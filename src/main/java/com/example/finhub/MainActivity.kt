@@ -23,7 +23,10 @@ class MainActivity : ComponentActivity() {
         val adminTab = intent.getStringExtra("adminTab") ?: ""
         
         setContent {
-            FinHubApp(shouldOpenAdminNews = shouldOpenAdminNews, adminTab = adminTab)
+            FinHubTheme {
+                FinHubApp(shouldOpenAdminNews = shouldOpenAdminNews, adminTab = adminTab)
+            }
+
         }
     }
 }
@@ -42,5 +45,8 @@ fun FinHubApp(shouldOpenAdminNews: Boolean = false, adminTab: String = "") {
 @Preview(showBackground = true)
 @Composable
 fun FinHubAppPreview() {
-    FinHubApp()
+    FinHubTheme {
+        FinHubApp()
+    }
+
 }

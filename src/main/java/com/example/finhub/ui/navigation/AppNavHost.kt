@@ -165,14 +165,14 @@ fun AppNavHost(
                         LottieAnimation(
                             composition = composition,
                             progress = { progress },
-                            modifier = Modifier.size(100.dp)
+                            modifier = Modifier.size(150.dp)
                         )
                         val loadingFact = remember { RandomFact() }
                         Text(
                             text = loadingFact,
-                            fontSize = 18.sp,
+                            fontSize = 16.sp,
                             color = OnboardingTextSecondary,
-                            textAlign = TextAlign.Justify,
+                            textAlign = TextAlign.Center,
                             modifier = Modifier.padding(start = 32.dp, end = 32.dp)
                         )
                     }

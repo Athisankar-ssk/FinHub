@@ -256,7 +256,7 @@ fun AdminNews() {
             onClick = { showDialog = true },
             enabled = true,
             colors = ButtonDefaults.buttonColors(
-                containerColor = if (isLoading) Color.Red else Follow,
+                containerColor = if (isLoading) Red else Follow,
                 contentColor = Color.White
             ),
             shape = RoundedCornerShape(4.dp),
@@ -276,6 +276,7 @@ fun AdminNews() {
                     Text(
                         "Stop Fetching",
                         fontSize = 16.sp,
+                        fontFamily = FinHubFont,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -291,6 +292,7 @@ fun AdminNews() {
                     Text(
                         "Fetch Latest News",
                         fontSize = 16.sp,
+                        fontFamily = FinHubFont,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -421,7 +423,7 @@ fun NewsRecordCard(record: NewsRecord) {
                 Text(
                     text = "Date: " + dateFormat.format(record.date),
                     color = Color.White,
-                    fontSize = 18.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Medium
                 )
 

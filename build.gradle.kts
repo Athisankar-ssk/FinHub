@@ -119,5 +119,8 @@ dependencies {
     implementation ("com.google.accompanist:accompanist-pager-indicators:0.32.0")
 
     implementation ("com.airbnb.android:lottie-compose:6.1.0")
+    implementation("io.coil-kt:coil-gif:2.4.0")
+
+    implementation("androidx.compose.ui:ui-text-google-fonts:1.6.0")
 
 }

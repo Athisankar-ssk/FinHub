@@ -12,10 +12,12 @@ import androidx.work.CoroutineWorker
 import androidx.work.Data
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
+import androidx.work.workDataOf
 import com.example.finhub.MainActivity
 import com.example.finhub.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 
 class NewsWorker(
     private val context: Context,
@@ -23,18 +25,28 @@ class NewsWorker(
 ) : CoroutineWorker(context, params) {
 
     private val notificationManager = context.getSystemService(NotificationManager::class.java)
-    private val CHANNEL_ID = "news_fetch_channel"
-    private val NOTIFICATION_ID = 1
+    private val PROGRESS_CHANNEL_ID = "news_fetch_progress_channel"
+    private val COMPLETION_CHANNEL_ID = "news_fetch_completion_channel"
+    private val PROGRESS_NOTIFICATION_ID = 1
+    private val COMPLETION_NOTIFICATION_ID = 2
 
     init {
-        createNotificationChannel()
+        createNotificationChannels()
     }
 
     override suspend fun doWork(): Result {
-        try {
-            // Create notification for foreground service
-            setForeground(createForegroundInfo("Starting news collection..."))
+        return try {
+            // Get the module tracker to determine which module to run
+            val moduleTracker = ModuleTracker(applicationContext)
+            val moduleToRun = moduleTracker.getNextModuleToRun()
+            val moduleName = moduleTracker.getModuleName(moduleToRun)
             
+            // Show initial progress notification
+            runBlocking {
+                setForeground(createProgressNotification("Starting module: $moduleName", 0, 1))
+            }
+            
+            // Create collector with progress callback
             val collector = NewsDataCollector(
                 finnhubApiKey = inputData.getString("finnhubApiKey") ?: "",
                 newsApiKey = inputData.getString("newsApiKey") ?: "",
@@ -42,59 +54,67 @@ class NewsWorker(
                 serpApiKey = inputData.getString("serpApiKey") ?: "",
                 context = context
             )
-
-            // Set progress callback
-            collector.setProgressCallback { module, current, total, articleTitle ->
+            
+            collector.setProgressCallback { module, progress, total, articleTitle ->
                 // Check if work is cancelled
                 if (isStopped) {
                     return@setProgressCallback
                 }
                 
-                // Launch a coroutine for progress updates
+                // Calculate percentage for AdminNews screen
+                val percentage = if (total > 0) (progress * 100) / total else 0
+                
+                // Set progress data for WorkInfo (used by AdminNews)
                 runBlocking {
-                    val progress = (current.toFloat() / total * 100).toInt()
-                    // Update progress data
-                    setProgress(Data.Builder().putInt("progress", progress).build())
-                    
-                    // Create and set foreground info
-                    val foregroundInfo = createForegroundInfo(
-                        "$module: Processing article $current of $total",
+                    setProgress(workDataOf("progress" to percentage))
+                }
+                
+                // Update progress notification
+                runBlocking {
+                    setForeground(createProgressNotification(
+                        "$moduleName: Processing article $progress of $total",
                         progress,
                         total,
                         articleTitle
-                    )
-                    setForeground(foregroundInfo)
+                    ))
                 }
             }
-
+            
             // Check if already cancelled
             if (isStopped) {
-                showCompletionNotification(false, "News fetch was cancelled")
-                return Result.failure()
-            }
-
-            // Use coroutineScope to properly await the news collection
-            collector.collectAndStoreNews() // Now properly awaited since collectAndStoreNews is suspend
-
-            // Show completion notification only if not cancelled
-            if (!isStopped) {
-                showCompletionNotification(true, "Successfully processed all news articles!")
-                return Result.success()
-            } else {
-                showCompletionNotification(false, "News fetch was cancelled")
+                showCompletionNotification(false, "$moduleName was cancelled")
                 return Result.failure()
             }
             
+            // Run just one module
+            // Use withContext to explicitly define the coroutine context
+            withContext(Dispatchers.IO) {
+                collector.collectAndStoreNewsForModule(moduleToRun)
+            }
+            
+            // Mark this module as completed
+            moduleTracker.markModuleCompleted(moduleToRun)
+            
+            // Show success notification
+            showCompletionNotification(true, "$moduleName completed successfully")
+            Result.success()
         } catch (e: Exception) {
-            Log.e("NewsWorker", "Error in worker: ${e.message}")
+            // Get the module tracker to determine which module was running
+            val moduleTracker = ModuleTracker(applicationContext)
+            val moduleToRun = moduleTracker.getNextModuleToRun()
+            val moduleName = moduleTracker.getModuleName(moduleToRun)
+            
+            Log.e("NewsWorker", "Error in module $moduleName: ${e.message}")
+            
             val errorMessage = when {
                 e.message?.contains("Unable to resolve host") == true ->
                     "No internet connection. Please check your network settings."
-                isStopped -> "News fetch was cancelled"
-                else -> "Error: ${e.message}"
+                isStopped -> "$moduleName was cancelled"
+                else -> "Error in $moduleName: ${e.message}"
             }
+            
             showCompletionNotification(false, errorMessage)
-            return Result.failure()
+            Result.failure()
         }
     }
 
@@ -113,33 +133,54 @@ class NewsWorker(
         )
     }
 
-    private fun createNotificationChannel() {
+    private fun createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "News Fetch Progress"
-            val descriptionText = "Shows progress of news fetching and processing"
-            val importance = NotificationManager.IMPORTANCE_LOW
-            val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
-                description = descriptionText
+            // Progress channel (low priority)
+            val progressChannel = NotificationChannel(
+                PROGRESS_CHANNEL_ID,
+                "News Fetch Progress",
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "Shows progress of news fetching and processing"
             }
-            notificationManager.createNotificationChannel(channel)
+            
+            // Completion channel (high priority)
+            val completionChannel = NotificationChannel(
+                COMPLETION_CHANNEL_ID,
+                "News Fetch Completion",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Shows final status of news fetching operations"
+                enableVibration(true)
+                setShowBadge(true)
+            }
+            
+            notificationManager.createNotificationChannel(progressChannel)
+            notificationManager.createNotificationChannel(completionChannel)
         }
     }
 
-    private fun createForegroundInfo(
+    private fun createProgressNotification(
         message: String,
         progress: Int = 0,
         total: Int = 100,
         articleTitle: String? = null
     ): ForegroundInfo {
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setContentTitle("Fetching News")
-            .setContentText(message)
+        // Calculate percentage
+        val percentage = if (total > 0) (progress * 100) / total else 0
+        
+        // Format message with percentage
+        val messageWithPercentage = "$message ($percentage%)" 
+        
+        val notification = NotificationCompat.Builder(context, PROGRESS_CHANNEL_ID)
+            .setContentTitle("FinHub News Update")
+            .setContentText(messageWithPercentage)
             .apply {
                 if (articleTitle != null) {
                     setSubText(articleTitle)
                 }
             }
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.notification)
             .setOngoing(true)
             .setProgress(total, progress, false)
             .setPriority(NotificationCompat.PRIORITY_LOW)
@@ -147,20 +188,31 @@ class NewsWorker(
             .setAutoCancel(false)
             .build()
 
-        return ForegroundInfo(NOTIFICATION_ID, notification)
+        return ForegroundInfo(PROGRESS_NOTIFICATION_ID, notification)
     }
 
     private fun showCompletionNotification(success: Boolean, message: String) {
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setContentTitle(if (success) "News Fetch Complete" else "News Fetch Failed")
+        val icon = if (success) R.drawable.notification else R.drawable.notification
+        val title = if (success) "✅ News Update Complete" else "❌ News Update Failed"
+        
+        val notification = NotificationCompat.Builder(context, COMPLETION_CHANNEL_ID)
+            .setContentTitle(title)
             .setContentText(message)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setOngoing(false)
-            .setAutoCancel(true)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setSmallIcon(icon)
+            .setOngoing(false)  // Not ongoing, but will persist
+            .setAutoCancel(true)  // Auto-cancel when clicked
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_STATUS)
+            .setVibrate(longArrayOf(0, 250, 250, 250))  // Add vibration
             .setContentIntent(createPendingIntent())
+            // Ensure it doesn't time out
+            .setTimeoutAfter(0)
             .build()
 
-        notificationManager.notify(NOTIFICATION_ID, notification)
+        // Cancel the progress notification first
+        notificationManager.cancel(PROGRESS_NOTIFICATION_ID)
+        
+        // Show the completion notification with a different ID
+        notificationManager.notify(COMPLETION_NOTIFICATION_ID, notification)
     }
-} 
+}

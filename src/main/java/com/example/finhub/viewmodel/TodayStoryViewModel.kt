@@ -1,11 +1,18 @@
 package com.example.finhub.viewmodel
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.core.app.NotificationCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.finhub.MainActivity
+import com.example.finhub.R
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.DocumentId
 import com.google.firebase.Timestamp
@@ -29,7 +36,7 @@ data class Story(
 )
 
 @RequiresApi(Build.VERSION_CODES.O)
-class TodayStoryViewModel(context: Context) : ViewModel() {
+class TodayStoryViewModel(private val context: Context) : ViewModel() {
     private val db = FirebaseFirestore.getInstance()
     private val todayStoryCollection = db.collection("todaystory")
     private val storiesCollection = db.collection("stories")
@@ -124,9 +131,94 @@ class TodayStoryViewModel(context: Context) : ViewModel() {
 
                 // Update the state
                 _todayStory.value = todayStory
+                
+                // Check if notification has been sent today
+                val notificationDoc = todayStoryCollection.document("notification_status").get().await()
+                val notificationSent = if (notificationDoc.exists()) {
+                    notificationDoc.getBoolean("sent_today") == true && 
+                    notificationDoc.getString("date") == today
+                } else {
+                    false
+                }
+                
+                // If notification hasn't been sent today, send it and update status
+                if (!notificationSent) {
+                    // Send notification
+                    sendTodayStoryNotification(todayStory)
+                    
+                    // Update notification status in Firestore
+                    todayStoryCollection.document("notification_status")
+                        .set(mapOf(
+                            "sent_today" to true,
+                            "date" to today,
+                            "time" to Timestamp.now()
+                        ))
+                        .await()
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+    
+    private fun sendTodayStoryNotification(story: Story) {
+        // Create notification channel for Android O and above
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                "Today's Story",
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Notifications for daily story updates"
+            }
+            
+            // Register the channel with the system
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
+        
+        // Create an intent that opens the Today Story screen
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("openTodayStory", true)
+        }
+        
+        val pendingIntent = PendingIntent.getActivity(
+            context, 
+            0, 
+            intent, 
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        
+        // Build the notification
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.notification) // Use your app's notification icon
+            .setContentTitle("Today's Story Updated")
+            .setContentText(story.title)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .build()
+        
+        // Show the notification
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(NOTIFICATION_ID, notification)
+    }
+    
+    companion object {
+        private const val CHANNEL_ID = "today_story_channel"
+        private const val NOTIFICATION_ID = 1001
+        
+        fun provideFactory(context: Context): ViewModelProvider.Factory {
+            return object : ViewModelProvider.Factory {
+                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                    if (modelClass.isAssignableFrom(TodayStoryViewModel::class.java)) {
+                        @Suppress("UNCHECKED_CAST")
+                        return TodayStoryViewModel(context) as T
+                    }
+                    throw IllegalArgumentException("Unknown ViewModel class")
+                }
+            }
         }
     }
 
@@ -140,19 +232,5 @@ class TodayStoryViewModel(context: Context) : ViewModel() {
     private fun isAfter6AM(): Boolean {
         val now = LocalDateTime.now(ZoneOffset.of("+05:30")) // IST
         return now.hour >= 6
-    }
-
-    companion object {
-        fun provideFactory(context: Context): ViewModelProvider.Factory {
-            return object : ViewModelProvider.Factory {
-                override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    if (modelClass.isAssignableFrom(TodayStoryViewModel::class.java)) {
-                        @Suppress("UNCHECKED_CAST")
-                        return TodayStoryViewModel(context) as T
-                    }
-                    throw IllegalArgumentException("Unknown ViewModel class")
-                }
-            }
-        }
     }
 } 

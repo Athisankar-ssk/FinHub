@@ -13,8 +13,8 @@ object FirebaseAdminService {
     private const val ADMIN_PASSWORD = "FinHub@2025" // Replace with actual admin password
 
     // Check if the provided credentials match admin credentials
-    suspend fun isAdminCredentials(email: String, password: String): Boolean {
-        return email == ADMIN_EMAIL && password == ADMIN_PASSWORD
+    suspend fun isAdminCredentials(email: String): Boolean {
+        return email == ADMIN_EMAIL
     }
 
     // Set admin session in shared preferences

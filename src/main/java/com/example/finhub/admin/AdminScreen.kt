@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.example.finhub.data.database.FirebaseAdminService
 import com.example.finhub.ui.screens.home.DevBytesTheme
 import android.content.Context
+import androidx.compose.foundation.border
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -144,16 +145,7 @@ fun AdminScreen(navController: NavController) {
             modifier = Modifier
                 .fillMaxWidth(),
             divider = {},
-            indicator = { tabPositions ->
-                Box(
-                    Modifier
-                        .tabIndicatorOffset(
-                            tabPositions[selectedTab]
-                        )
-                        .height(3.dp)
-                        .background(MediumVilot)
-                )
-            }
+            indicator = {}
 
         ) {
             tabs.forEachIndexed { index, tab ->
@@ -163,9 +155,23 @@ fun AdminScreen(navController: NavController) {
                     text = {
                         Text(
                             text = tab,
-                            color = if (selectedTab == index) DevBytesTheme.textPrimary else DevBytesTheme.textSecondary,
+                            color = if (selectedTab == index) Color.White else Color.LightGray,
+                            fontFamily = FinHubFont,
                             fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal,
-                            modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp),
+                            modifier = Modifier
+                                .padding(0.dp)
+                                .then(
+                                    if (selectedTab == index) {
+                                        Modifier
+                                            .border(
+                                                width = 1.dp,
+                                                color = MediumVilot,
+                                                shape = RoundedCornerShape(4.dp)
+                                            )
+                                            .padding(vertical = 6.dp, horizontal = 10.dp)                                    } else {
+                                        Modifier
+                                    }
+                                ),
                             maxLines = 1
                         )
                     }

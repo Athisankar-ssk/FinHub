@@ -85,7 +85,7 @@ fun OnboardingScreen(navController: NavController, context: Context) {
             icon = Icons.Filled.Palette,
             imageRes = R.drawable.onboarding_image2,
             title = "Personalized Insights",
-            desc = "Get news tailored to your interests, region, and market behavior. " +
+            desc = "Get news tailored to your business interests, goals, and market behavior. " +
                     "Your feed adapts to what matters most to you"
         ),
         OnboardingPage(
@@ -110,6 +110,23 @@ fun OnboardingScreen(navController: NavController, context: Context) {
                 .fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ){
+                Text(
+                    text = "FinHub",
+                    color = Color.White,
+                    fontSize = 32.sp,
+                    letterSpacing = 2.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 40.dp)
+                )
+            }
+
             // Image that fills the entire upper area
             Image(
                 painter = painterResource(id = pages[pagerState.currentPage].imageRes),
@@ -174,14 +191,15 @@ fun OnboardingScreen(navController: NavController, context: Context) {
                         Text(
                             text = pages[page].title,
                             color = CardPurple,
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.ExtraBold
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.height(10.dp))
                         Text(
                             text = pages[page].desc,
                             color = CardPurple,
-                            fontSize = 15.sp,
+                            lineHeight = 20.sp,
+                            fontWeight = FontWeight.Normal,
                             textAlign = TextAlign.Center
                         )
                     }
@@ -232,7 +250,8 @@ fun OnboardingScreen(navController: NavController, context: Context) {
                 ) {
                     Text(
                         text = if (pagerState.currentPage < pages.size - 1) "Next" else "Get Started",
-                        fontSize = 18.sp,
+                        fontSize = 15.sp,
+                        fontFamily = FinHubFont,
                         fontWeight = FontWeight.Bold
                     )
                 }

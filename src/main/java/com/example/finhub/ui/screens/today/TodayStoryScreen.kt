@@ -19,6 +19,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.finhub.ui.theme.*
 import com.example.finhub.viewmodel.TodayStoryViewModel
 import com.google.firebase.Timestamp
@@ -83,9 +88,19 @@ fun TodayStoryScreen(navController: NavController) {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                CircularProgressIndicator(
-                                    color = AccentPurple,
-                                    modifier = Modifier.size(48.dp)
+                                val composition by rememberLottieComposition(
+                                    spec = LottieCompositionSpec.Asset("loading_animation.json")
+                                )
+
+                                val progress by animateLottieCompositionAsState(
+                                    composition = composition,
+                                    iterations = LottieConstants.IterateForever
+                                )
+
+                                LottieAnimation(
+                                    composition = composition,
+                                    progress = { progress },
+                                    modifier = Modifier.size(150.dp)
                                 )
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Text(
@@ -108,7 +123,7 @@ fun TodayStoryScreen(navController: NavController) {
                             Text(
                                 text = story.title.replace("*",""),
                                 color = Color.White,
-                                fontSize = 24.sp,
+                                fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(bottom = 16.dp)
                             )
@@ -123,20 +138,10 @@ fun TodayStoryScreen(navController: NavController) {
                             ) {
                                 // Person
                                 Text(
-                                    text = "Story of ${story.person}",
+                                    text = "The Story of ${story.person}",
                                     color = OnboardingTextSecondary,
-                                    fontSize = 16.sp
-                                )
-
-                                // Date
-                                val date = LocalDateTime.ofInstant(
-                                    Instant.ofEpochSecond(story.timestamp.seconds),
-                                    ZoneId.systemDefault()
-                                )
-                                Text(
-                                    text = date.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
-                                    color = OnboardingTextSecondary,
-                                    fontSize = 14.sp
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 15.sp
                                 )
                             }
 
@@ -144,7 +149,7 @@ fun TodayStoryScreen(navController: NavController) {
                             Text(
                                 text = story.story,
                                 color = Color.White,
-                                fontSize = 18.sp,
+                                fontSize = 16.sp,
                                 lineHeight = 28.sp
                             )
                         }
@@ -153,4 +158,4 @@ fun TodayStoryScreen(navController: NavController) {
             }
         }
     }
-} 
+}

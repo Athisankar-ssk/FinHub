@@ -13,6 +13,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.text.input.KeyboardType
@@ -130,22 +132,38 @@ fun SignInScreen(navController: NavController) {
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("Email", color = OnboardingTextSecondary) },
+            label = { Text("Email", color = OnboardingTextSecondary, fontFamily = FinHubFont) },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Email,
+                    contentDescription = "Email",
+                    tint = OnboardingTextSecondary
+                )
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 8.dp),
-            textStyle = TextStyle(color = Color.White),
+
+            textStyle = TextStyle(color = Color.White, fontFamily = FinHubFont),
             colors = TextFieldDefaults.outlinedTextFieldColors(
                 focusedBorderColor = Melrose,
                 unfocusedBorderColor = OnboardingTextSecondary,
                 cursorColor = Color.White
             )
+
         )
 
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Password", color = OnboardingTextSecondary) },
+            label = { Text("Password", color = OnboardingTextSecondary,  fontFamily = FinHubFont) },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = "Password",
+                    tint = OnboardingTextSecondary
+                )
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 8.dp),
@@ -153,10 +171,12 @@ fun SignInScreen(navController: NavController) {
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             trailingIcon = {
+                val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                val contentDescription = if (passwordVisible) "Hide password" else "Show password"
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Icon(
-                        imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                        contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                        imageVector = image,
+                        contentDescription = contentDescription,
                         tint = OnboardingTextSecondary
                     )
                 }
@@ -191,7 +211,7 @@ fun SignInScreen(navController: NavController) {
                                         scope.launch {
                                             try {
                                                 // After successful Firebase auth, check if it's admin credentials
-                                                if (FirebaseAdminService.isAdminCredentials(email, password)) {
+                                                if (FirebaseAdminService.isAdminCredentials(email)) {
                                                     // Set admin session
                                                     FirebaseAdminService.setAdminSession(context)
                                                     // Navigate to admin screen
@@ -317,7 +337,7 @@ fun SignInScreen(navController: NavController) {
                 )
             } else {
                 // Show regular text
-                Text("Continue", fontWeight = FontWeight.SemiBold)
+                Text("Continue", fontFamily = FinHubFont, fontWeight = FontWeight.SemiBold)
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
@@ -331,9 +351,10 @@ fun SignInScreen(navController: NavController) {
                 resetEmail = email // Pre-fill with current email if any
                 showPasswordResetDialog = true
             }) {
-                Text("Forgot Password?",
+                Text("Forgot Password ?",
                     color = Melrose,
                     fontSize = 14.sp,
+                    fontFamily = FinHubFont,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -358,7 +379,7 @@ fun SignInScreen(navController: NavController) {
         ) {
             Text("Don't have an account ?", color = OnboardingTextSecondary)
             TextButton(onClick = { navController.navigate("signup") }) {
-                Text("Sign Up", color = Melrose, fontWeight = FontWeight.Bold)
+                Text("Sign Up", color = Melrose, fontFamily = FinHubFont, fontWeight = FontWeight.Bold)
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -484,7 +505,7 @@ fun SignInScreen(navController: NavController) {
                 OutlinedTextField(
                     value = resetEmail,
                     onValueChange = { resetEmail = it },
-                    label = { Text("Email", color = CardPurple) },
+                    label = { Text("Email", color = CardPurple,  fontFamily = FinHubFont) },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     colors = TextFieldDefaults.outlinedTextFieldColors(

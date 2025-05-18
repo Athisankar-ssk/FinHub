@@ -21,6 +21,11 @@ import kotlinx.coroutines.launch
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.zIndex
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.finhub.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -76,7 +81,20 @@ fun PersonalizeFeedScreen(navController: NavController) {
         )
 
         if (isLoading) {
-            CircularProgressIndicator(color = Color.White)
+            val composition by rememberLottieComposition(
+                spec = LottieCompositionSpec.Asset("loading_animation.json")
+            )
+
+            val progress by animateLottieCompositionAsState(
+                composition = composition,
+                iterations = LottieConstants.IterateForever
+            )
+
+            LottieAnimation(
+                composition = composition,
+                progress = { progress },
+                modifier = Modifier.size(150.dp)
+            )
         } else {
             errorMessage?.let {
                 Text(text = it, color = Color.Red, modifier = Modifier.padding(bottom = 8.dp))
@@ -133,7 +151,8 @@ private fun TopicItem(
             Text(
                 text = topic,
                 color = Color.White,
-                fontSize = 18.sp,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
                 modifier = Modifier.weight(1f)
             )
             Button(
@@ -158,7 +177,8 @@ private fun TopicItem(
             ) {
                 Text(
                     if (isFollowed) "✔ Followed" else "✚ Follow",
-                    color = Color.White
+                    color = Color.White,
+                    fontFamily = FinHubFont
                 )
             }
         }

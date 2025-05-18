@@ -320,12 +320,23 @@ fun AdminStory() {
                     enabled = !isLoading
                 ) {
                     if (isLoading) {
+
                         CircularProgressIndicator(
                             modifier = Modifier.size(24.dp),
                             color = Color.White
                         )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (isGeneratingTitle) "Generating title..." else "Generating story...",
+                            color = Color.White,
+                            fontFamily = FinHubFont
+                        )
                     } else {
-                        Text("Generate Story")
+                        Text(
+                            "Generate Story",
+                            fontFamily = FinHubFont,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 }
 
@@ -359,9 +370,13 @@ fun AdminStory() {
                 containerColor = Color.Transparent,
                 contentColor = Melrose
             ),
-            shape = RoundedCornerShape(4.dp)
+            shape = RoundedCornerShape(4.dp),
         ) {
-            Text(if (showPersonList) "Hide All Persons" else "Show All Persons")
+            Text(
+                text = if (showPersonList) "Hide All Persons" else "Show All Persons",
+                fontFamily = FinHubFont,
+                fontWeight = FontWeight.Medium
+            )
         }
 
         // Search and List Section (only shown when showPersonList is true)
@@ -422,29 +437,6 @@ fun AdminStory() {
                 }
             }
         }
-
-        // Loading States
-        if (isLoading || isGeneratingTitle) {
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    CircularProgressIndicator(
-                        color = Follow,
-                        modifier = Modifier.size(48.dp)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = if (isGeneratingTitle) "Generating title..." else "Generating story...",
-                        color = Color.White
-                    )
-                }
-            }
-        }
-
         // Error Message
         error?.let {
             Text(
@@ -465,7 +457,7 @@ fun StoryStatCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .height(80.dp),
+            .height(90.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         shape = RoundedCornerShape(4.dp)
     ) {

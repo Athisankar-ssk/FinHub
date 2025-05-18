@@ -51,6 +51,7 @@ val BlackVilot = Color(0xFF1E163D)
 val LightBrown = Color(0xFFDBD5D1)
 val LightVilot = Color(0xFFB9A6FF)
 val MediumVilot = Color(0xFF927BED)
+val Gray = Color(0xFFCCCCCC)
 
 val Followed = Color(0xFF2D2350)
 val Follow = Color(0xFF6C47FF)

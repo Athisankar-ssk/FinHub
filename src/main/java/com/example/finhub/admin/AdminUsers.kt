@@ -222,7 +222,7 @@ fun StatCard(
                 color = borderColor.value,
                 shape = RoundedCornerShape(4.dp)
             )
-            .height(80.dp),
+            .height(90.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         shape = RoundedCornerShape(8.dp)
     ) {
@@ -281,7 +281,7 @@ fun UserCard(user: UserData) {
                 Text(
                     text = user.name ?: "Anonymous",
                     color = Color.White,
-                    fontSize = 18.sp,
+                    fontSize = 17.sp,
                     fontWeight = FontWeight.Medium
                 )
                 Text(

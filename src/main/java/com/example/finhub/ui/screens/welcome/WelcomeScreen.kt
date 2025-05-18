@@ -5,6 +5,7 @@ import android.widget.Toast
 import com.example.finhub.utils.NotificationManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -158,7 +159,7 @@ fun WelcomeScreen(navController: NavController) {
                 fontSize = 32.sp,
                 letterSpacing = 2.sp
             )
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(18.dp))
             // Headline and subtitle
             Text(
                 text = "BUSINESS &",
@@ -174,11 +175,11 @@ fun WelcomeScreen(navController: NavController) {
                 fontSize = 24.sp,
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(18.dp))
             Text(
                 text = "Finance, Business Simplified.",
                 color = OnboardingTextSecondary,
-                fontSize = 20.sp,
+                fontSize = 18.sp,
                 modifier = Modifier.fillMaxWidth()
             )
             Divider(
@@ -205,7 +206,7 @@ fun WelcomeScreen(navController: NavController) {
                     }
                 },
                 shape = RoundedCornerShape(4.dp),
-                border = ButtonDefaults.outlinedButtonBorder,
+                border = BorderStroke(width = 1.dp, color = OnboardingTextSecondary),
                 colors = ButtonDefaults.outlinedButtonColors(
                     containerColor = Color.Transparent,
                     contentColor = Color.White
@@ -223,6 +224,7 @@ fun WelcomeScreen(navController: NavController) {
                 Text(
                     "Continue with Google",
                     color = Color.White,
+                    fontFamily = FinHubFont,
                     fontWeight = FontWeight.Medium
                 )
             }
@@ -247,7 +249,7 @@ fun WelcomeScreen(navController: NavController) {
                     contentColor = Color.White
                 )
             ) {
-                Text("Continue with Email", fontWeight = FontWeight.Medium)
+                Text("Continue with Email", fontFamily = FinHubFont, fontWeight = FontWeight.Medium)
             }
             Spacer(modifier = Modifier.height(16.dp))
             // Sign in link
@@ -258,7 +260,7 @@ fun WelcomeScreen(navController: NavController) {
             ) {
                 Text("Already have an account ? ", color = OnboardingTextSecondary)
                 TextButton(onClick = { navController.navigate("signin") }) {
-                    Text("Sign In", color = Melrose, fontWeight = FontWeight.Bold)
+                    Text("Sign In", color = Melrose, fontFamily = FinHubFont, fontWeight = FontWeight.Bold)
                 }
             }
         }
