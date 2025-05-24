@@ -13,6 +13,7 @@ import androidx.work.Data
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
+import android.graphics.BitmapFactory
 import com.example.finhub.MainActivity
 import com.example.finhub.R
 import kotlinx.coroutines.Dispatchers
@@ -181,6 +182,7 @@ class NewsWorker(
                 }
             }
             .setSmallIcon(R.drawable.notification)
+            .setLargeIcon(BitmapFactory.decodeResource(context.resources, R.drawable.notification))
             .setOngoing(true)
             .setProgress(total, progress, false)
             .setPriority(NotificationCompat.PRIORITY_LOW)
@@ -199,6 +201,7 @@ class NewsWorker(
             .setContentTitle(title)
             .setContentText(message)
             .setSmallIcon(icon)
+            .setLargeIcon(BitmapFactory.decodeResource(context.resources, R.drawable.notification))
             .setOngoing(false)  // Not ongoing, but will persist
             .setAutoCancel(true)  // Auto-cancel when clicked
             .setPriority(NotificationCompat.PRIORITY_HIGH)

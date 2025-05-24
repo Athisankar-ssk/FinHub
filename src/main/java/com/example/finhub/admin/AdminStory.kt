@@ -228,7 +228,7 @@ fun AdminStory() {
             // Now generate the title
             isGeneratingTitle = true
             val titlePrompt =
-                "Given this story about $personName, generate a only one compelling and concise title (maximum 10 words) that captures the essence of their journey. Story: $story"
+                "Given this story about $personName, generate a only one compelling and concise title (maximum 10 words) that captures the essence of their journey without any markdown formatting except new line character. Story: $story"
 
             val title = geminiService.makeGeminiApiRequest(titlePrompt)
             if (title == null) {

@@ -1268,7 +1268,7 @@ fun NewsCard(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(180.dp)
+                            .height(200.dp)
                     ) {
                         AsyncImage(
                             model = article.image,

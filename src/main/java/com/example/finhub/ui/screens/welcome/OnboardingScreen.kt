@@ -123,7 +123,16 @@ fun OnboardingScreen(navController: NavController, context: Context) {
                     fontWeight = FontWeight.ExtraBold,
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .padding(top = 40.dp)
+                        .padding(top = 25.dp)
+                )
+                Text(
+                    text = "Get Fed Daily",
+                    color = OnboardingTextSecondary,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 65.dp)
                 )
             }
 
@@ -233,7 +242,7 @@ fun OnboardingScreen(navController: NavController, context: Context) {
                                 pagerState.animateScrollToPage(pagerState.currentPage + 1)
                             }
                         } else {
-                            sharedPreferences.edit().putBoolean("showOnboarding", true).apply()
+                            sharedPreferences.edit().putBoolean("showOnboarding", false).apply()
                             navController.navigate("welcome") {
                                 popUpTo("onboarding") { inclusive = true }
                             }

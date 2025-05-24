@@ -93,7 +93,7 @@ fun PersonalizeFeedScreen(navController: NavController) {
             LottieAnimation(
                 composition = composition,
                 progress = { progress },
-                modifier = Modifier.size(150.dp)
+                modifier = Modifier.size(130.dp)
             )
         } else {
             errorMessage?.let {

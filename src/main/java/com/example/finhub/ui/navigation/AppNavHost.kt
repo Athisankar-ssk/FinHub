@@ -2,6 +2,7 @@ package com.example.finhub.ui.navigation
 
 import android.content.Context
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -41,13 +42,12 @@ import com.example.finhub.ui.screens.welcome.InterestSelectionScreen
 import com.example.finhub.ui.screens.welcome.PersonalizeFeedScreen
 import com.example.finhub.data.model.NewsArticle
 import com.example.finhub.ui.components.RandomFact
-import com.example.finhub.ui.theme.HomeBackgroundTheme
-import com.example.finhub.ui.theme.OnboardingTextSecondary
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.tasks.await
 import com.example.finhub.admin.AdminScreen
 import com.example.finhub.data.database.FirebaseAdminService
 import com.example.finhub.ui.screens.today.TodayStoryScreen
+import com.example.finhub.ui.theme.*
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -68,6 +68,7 @@ fun AppNavHost(
     LaunchedEffect(Unit) {
         // Check if onboarding is completed
         val isOnboardingCompleted = sharedPreferences.getBoolean("showOnboarding", true)
+        Log.d("onboarding completed", "$isOnboardingCompleted")
 
         // Validate Firebase user
         val currentUser = try {
@@ -98,7 +99,7 @@ fun AppNavHost(
             val isLoggedIn = sharedPreferences.getBoolean("is_logged_in", false)
             
             startDestination = when {
-                !isOnboardingCompleted -> "onboarding"
+                isOnboardingCompleted -> "onboarding"
                 FirebaseAdminService.isAdminSession(context) -> "admin"
                 currentUser == null -> "welcome"
                 !currentUser.isEmailVerified -> {
@@ -119,23 +120,7 @@ fun AppNavHost(
     }
 
     Scaffold(
-        containerColor = DevBytesTheme.darkBackground,
-//        bottomBar = {
-//            if (currentRoute in listOf("home", "trending", "markets", "bookmarks")) {
-//                BottomNavigationBar(
-//                    currentRoute = currentRoute ?: "home",
-//                    onNavigate = { route ->
-//                        navController.navigate(route) {
-//                            popUpTo(navController.graph.startDestinationId) {
-//                                saveState = true
-//                            }
-//                            launchSingleTop = true
-//                            restoreState = true
-//                        }
-//                    }
-//                )
-//            }
-//        }
+        containerColor = backgroundDarkColor,
     ) { innerPadding ->
         NavHost(
             navController = navController,
@@ -165,7 +150,7 @@ fun AppNavHost(
                         LottieAnimation(
                             composition = composition,
                             progress = { progress },
-                            modifier = Modifier.size(150.dp)
+                            modifier = Modifier.size(130.dp)
                         )
                         val loadingFact = remember { RandomFact() }
                         Text(
